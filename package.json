@@ -1,6 +1,6 @@
 {
   "name": "oxidize",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A Rust-inspired utility library for TypeScript and JavaScript",
   "main": "dist/oxidize.js",
   "module": "dist/oxidize.esm.js",
