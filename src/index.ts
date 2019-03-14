@@ -1,3 +1,3 @@
-export { Option } from "./options";
-export { Iterable } from "./iterable";
-export { Result } from "./result";
+export * from "./options";
+export * from "./iterable";
+export * from "./result";
