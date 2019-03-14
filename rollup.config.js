@@ -69,7 +69,7 @@ const cfgAlias = {
  |
  */
 import replace from "rollup-plugin-replace";
-import package from "./package.json";
+import pkg from "./package.json";
 const cfgReplace = {
   "process.env.NODE_ENV": JSON.stringify(process.env.BUILD),
   "process.env.BUILD": JSON.stringify(process.env.BUILD),
@@ -86,7 +86,7 @@ function getBuildNumber() {
     return process.env.BUILD_NUMBER;
   }
 
-  return package.version;
+  return pkg.version;
 }
 
 function getBuildSuffix() {
@@ -121,21 +121,85 @@ function getBuildVersion() {
  |    - `system` - Native format of the SystemJS loader.
  |
  */
-export default {
-  input: "src/index.ts",
-  output: [
-    {
+export default [
+  {
+    input: "src/index.ts",
+    output: {
       name: "Oxidize",
       format: "umd",
       file: "./dist/oxidize.js",
       sourcemap: true
     },
-    {
+    plugins: [alias(cfgAlias), typescript(cfgTypescript), replace(cfgReplace)]
+  },
+  {
+    input: "src/index.ts",
+    output: {
       name: "Oxidize",
       format: "esm",
       file: "./dist/oxidize.esm.js",
       sourcemap: true
-    }
-  ],
-  plugins: [alias(cfgAlias), typescript(cfgTypescript), replace(cfgReplace)]
-};
+    },
+    plugins: [
+      alias(cfgAlias),
+      typescript({ ...cfgTypescript, target: "es6" }),
+      replace(cfgReplace)
+    ]
+  },
+  {
+    input: "src/index.ts",
+    output: {
+      name: "Oxidize",
+      format: "esm",
+      file: "./dist/oxidize.es3.js",
+      sourcemap: true
+    },
+    plugins: [
+      alias(cfgAlias),
+      typescript({ ...cfgTypescript, target: "es3" }),
+      replace(cfgReplace)
+    ]
+  },
+  {
+    input: "src/index.ts",
+    output: {
+      name: "Oxidize",
+      format: "esm",
+      file: "./dist/oxidize.es5.js",
+      sourcemap: true
+    },
+    plugins: [
+      alias(cfgAlias),
+      typescript({ ...cfgTypescript, target: "es5" }),
+      replace(cfgReplace)
+    ]
+  },
+  {
+    input: "src/index.ts",
+    output: {
+      name: "Oxidize",
+      format: "esm",
+      file: "./dist/oxidize.es6.js",
+      sourcemap: true
+    },
+    plugins: [
+      alias(cfgAlias),
+      typescript({ ...cfgTypescript, target: "es6" }),
+      replace(cfgReplace)
+    ]
+  },
+  {
+    input: "src/index.ts",
+    output: {
+      name: "Oxidize",
+      format: "esm",
+      file: "./dist/oxidize.esnext.js",
+      sourcemap: true
+    },
+    plugins: [
+      alias(cfgAlias),
+      typescript({ ...cfgTypescript, target: "esnext" }),
+      replace(cfgReplace)
+    ]
+  }
+];

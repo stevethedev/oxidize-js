@@ -15,7 +15,31 @@ blocks in `Result.wrap()` to create `Results` and the ability to use
 is generated when an `Error` is created, the stack and message will be
 preserved and continue to trace back to the source where the error originated.
 
-## Result
+## Installation and Use
+
+Oxidize can be installed from NPM:
+
+```bash
+npm install [--global --save-dev --save] oxidize
+```
+
+For most use-cases, the default import should be sufficient:
+
+```javascript
+const oxidize = require("oxidize");
+```
+
+For less common use-cases, though, you may want greater control over how your
+dependencies are written:
+
+- ES3: `require("oxidize/dist/oxidize.es3");`
+- ES5: `require("oxidize/dist/oxidize.es5");`
+- ES6: `require("oxidize/dist/oxidize.es6");`
+- ESNext: `require("oxidize/dist/oxidize.esnext");`
+
+## Features
+
+### Result
 
 The `Result` type provides an error-handling structure that makes
 error-handling deliberate and explicit.
@@ -137,7 +161,7 @@ Extract the value with `unwrap` if the value is valid:
 let finalResult: number = fixedResult.unwrap();
 ```
 
-## Option
+### Option
 
 Makes optional values explicit.
 

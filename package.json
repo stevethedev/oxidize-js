@@ -2,7 +2,9 @@
   "name": "oxidize",
   "version": "1.0.0",
   "description": "A Rust-inspired utility library for TypeScript and JavaScript",
-  "main": "dist/index.js",
+  "main": "dist/oxidize.js",
+  "module": "dist/oxidize.esm.js",
+  "types": "dist/oxidize.d.ts",
   "scripts": {
     "build": "rollup -c --environment INCLUDE_DEPS,BUILD:development",
     "build:prod": "rollup -c --environment INCLUDE_DEPS,BUILD:production",
