@@ -101,6 +101,18 @@ function getBuildVersion() {
 
 /*
  |------------------------------------------------------------------------------
+ | Rollup Plugin :: Uglify
+ |------------------------------------------------------------------------------
+ |
+ | This is a plugin used to minify the generated code bundle and uses Uglify
+ | under the hood. This is only intended for browser-targeted distributions.
+ |
+ */
+import { uglify } from "rollup-plugin-uglify";
+const cfgUglify = {};
+
+/*
+ |------------------------------------------------------------------------------
  | Rollup Configuration Export
  |------------------------------------------------------------------------------
  |
@@ -121,85 +133,54 @@ function getBuildVersion() {
  |    - `system` - Native format of the SystemJS loader.
  |
  */
-export default [
-  {
-    input: "src/index.ts",
-    output: {
-      name: "Oxidize",
-      format: "umd",
-      file: "./dist/oxidize.js",
-      sourcemap: true
-    },
-    plugins: [alias(cfgAlias), typescript(cfgTypescript), replace(cfgReplace)]
-  },
-  {
-    input: "src/index.ts",
-    output: {
-      name: "Oxidize",
-      format: "esm",
-      file: "./dist/oxidize.esm.js",
-      sourcemap: true
-    },
-    plugins: [
-      alias(cfgAlias),
-      typescript({ ...cfgTypescript, target: "es6" }),
-      replace(cfgReplace)
-    ]
-  },
-  {
-    input: "src/index.ts",
-    output: {
-      name: "Oxidize",
-      format: "esm",
-      file: "./dist/oxidize.es3.js",
-      sourcemap: true
-    },
-    plugins: [
-      alias(cfgAlias),
-      typescript({ ...cfgTypescript, target: "es3" }),
-      replace(cfgReplace)
-    ]
-  },
-  {
-    input: "src/index.ts",
-    output: {
-      name: "Oxidize",
-      format: "esm",
-      file: "./dist/oxidize.es5.js",
-      sourcemap: true
-    },
-    plugins: [
-      alias(cfgAlias),
-      typescript({ ...cfgTypescript, target: "es5" }),
-      replace(cfgReplace)
-    ]
-  },
-  {
-    input: "src/index.ts",
-    output: {
-      name: "Oxidize",
-      format: "esm",
-      file: "./dist/oxidize.es6.js",
-      sourcemap: true
-    },
-    plugins: [
-      alias(cfgAlias),
-      typescript({ ...cfgTypescript, target: "es6" }),
-      replace(cfgReplace)
-    ]
-  },
-  {
-    input: "src/index.ts",
-    output: {
-      name: "Oxidize",
-      format: "esm",
-      file: "./dist/oxidize.esnext.js",
-      sourcemap: true
-    },
-    plugins: [
-      alias(cfgAlias),
-      typescript({ ...cfgTypescript, target: "esnext" }),
-      replace(cfgReplace)
-    ]
+
+function getOutput({ format, suffix, minify }) {
+  return {
+    name: "Oxidize",
+    exports: "named",
+    sourcemap: true,
+    file: `./dist/oxidize${suffix ? `.${suffix}` : ""}${
+      minify ? ".min" : ""
+    }.js`,
+    format
+  };
+}
+
+function getPlugins({ typescript: ts, uglify: ug }) {
+  const tsOpts = { ...cfgTypescript, ...(ts || {}) };
+  const plugins = [alias(cfgAlias), typescript(tsOpts), replace(cfgReplace)];
+  if (ug) {
+    plugins.push(uglify(cfgUglify));
   }
+  return plugins;
+}
+
+function getOptions(output = {}) {
+  const plugins = {
+    typescript: {}
+  };
+  if (output.target) {
+    plugins.typescript.target = output.target;
+  }
+  if (output.uglify) {
+    plugins.uglify = true;
+  }
+
+  return {
+    input: "src/oxidize.ts",
+    output: getOutput(output),
+    plugins: getPlugins(plugins)
+  };
+}
+
+export default [
+  getOptions({ format: "umd" }),
+  ...(process.env.BUILD === "production"
+    ? [getOptions({ format: "umd", suffix: "min", uglify: true })]
+    : []),
+
+  getOptions({ format: "esm", suffix: "esm", target: "es6" }),
+  getOptions({ format: "esm", suffix: "es5", target: "es5" }),
+  getOptions({ format: "esm", suffix: "es6", target: "es6" }),
+  getOptions({ format: "esm", suffix: "esnext", target: "esnext" })
 ];
