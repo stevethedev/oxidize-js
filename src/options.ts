@@ -30,6 +30,38 @@ import { Fail, Ok, Result } from "./result";
  * ```
  */
 export class Option<T> {
+  /**
+   * Returns `Some<T>` if the value is not null or undefined, else `None<T>`.
+   *
+   * @param value The value to convert into an `Option<T>`.
+   *
+   * This function will also check if a value is already an `Option` and, if
+   * so, then it will return that `Option` instead. This approach could be
+   * overkill in trivial cases; but it does simplify the process of interacting
+   * with other `Option` values.
+   *
+   * ```typescript
+   * function double(number?: number | Option<number>): number {
+   *   const maybeNumber = Option.from(number);
+   *   return maybeNumber.unwrapOr(0) * 2;
+   * }
+   *
+   * expect(double()).toBe(0);
+   * expect(double(1)).toBe(2);
+   * expect(double(None())).toBe(0);
+   * expect(double(Some(2))).toBe(4);
+   * ```
+   */
+  public static from<T>(value: T | undefined | null | Option<T>): Option<T> {
+    if (value instanceof Option) {
+      return value;
+    }
+    if (value !== void 0 && value !== null) {
+      return Some<T>(value);
+    }
+    return None<T>();
+  }
+
   constructor(private value?: T) {}
 
   /**

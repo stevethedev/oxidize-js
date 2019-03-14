@@ -123,3 +123,15 @@ test("can join options together with `and`", () => {
 
   expect(x.and(y)).toEqual(None());
 });
+
+test("can convert undefined and null values into an Option", () => {
+  function double(num?: number | Option<number>): number {
+    const maybeNumber = Option.from<number>(num);
+    return maybeNumber.unwrapOr(0) * 2;
+  }
+
+  expect(double()).toBe(0);
+  expect(double(1)).toBe(2);
+  expect(double(None())).toBe(0);
+  expect(double(Some(2))).toBe(4);
+});
