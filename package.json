@@ -1,0 +1,45 @@
+{
+  "name": "oxidize",
+  "version": "1.0.0",
+  "description": "A Rust-inspired utility library for TypeScript and JavaScript",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "rollup -c --environment INCLUDE_DEPS,BUILD:development",
+    "build:prod": "rollup -c --environment INCLUDE_DEPS,BUILD:production",
+    "types": "tsc -p ./tsconfig.types.json --declaration --emitDeclarationOnly --out ./dist/oxidize.js",
+    "test": "jest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stevethedev/oxidize-js.git"
+  },
+  "keywords": [
+    "rust",
+    "typescript",
+    "javascript",
+    "ts",
+    "js",
+    "utility",
+    "util"
+  ],
+  "author": "Steven Jimenez",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stevethedev/oxidize-js/issues"
+  },
+  "homepage": "https://github.com/stevethedev/oxidize-js#readme",
+  "devDependencies": {
+    "@types/jest": "^24.0.11",
+    "jest": "^24.5.0",
+    "prettier": "1.16.4",
+    "rollup": "^1.6.0",
+    "rollup-plugin-alias": "^1.5.1",
+    "rollup-plugin-replace": "^2.1.0",
+    "rollup-plugin-typescript": "^1.0.0",
+    "ts-jest": "^24.0.0",
+    "tslib": "^1.9.3",
+    "tslint": "^5.14.0",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.3.3333"
+  }
+}

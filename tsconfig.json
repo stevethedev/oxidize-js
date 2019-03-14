@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "declaration": true,
+    "target": "es5",
+    "module": "es2015",
+    "noImplicitAny": false,
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "downlevelIteration": true,
+    "sourceMap": false,
+    "strictNullChecks": true,
+    "noUnusedParameters": false,
+    "noUnusedLocals": true,
+    "noEmitOnError": true,
+    "noEmitHelpers": true,
+    "importHelpers": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./src/*"]
+    },
+    "esModuleInterop": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
