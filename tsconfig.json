@@ -19,8 +19,8 @@
     "noEmitHelpers": true,
     "importHelpers": true,
     "outDir": "./dist",
-    "rootDir": ".",
-    "baseUrl": ".",
+    "rootDir": "./src",
+    "baseUrl": "./src",
     "paths": {
       "~/*": ["./src/*"]
     },

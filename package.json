@@ -6,8 +6,8 @@
   "module": "dist/oxidize.esm.js",
   "types": "dist/oxidize.d.ts",
   "scripts": {
-    "build": "rollup -c --environment INCLUDE_DEPS,BUILD:development",
-    "build:prod": "rollup -c --environment INCLUDE_DEPS,BUILD:production",
+    "build": "rollup -c --environment INCLUDE_DEPS,BUILD:development && npm run types",
+    "build:prod": "npm run test && rollup -c --environment INCLUDE_DEPS,BUILD:production && npm run types",
     "types": "tsc -p ./tsconfig.types.json --declaration --emitDeclarationOnly --out ./dist/oxidize.js",
     "test": "jest --coverage"
   },
