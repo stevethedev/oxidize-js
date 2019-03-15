@@ -23,7 +23,8 @@
     "inlineSourceMap": true,
     "inlineSources": true,
 
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "esModuleInterop": true
   },
   "include": ["src"]
 }
