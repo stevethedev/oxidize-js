@@ -32,8 +32,8 @@ const oxidize = require("oxidize");
 For less common use-cases, though, you may want greater control over how your
 dependencies are written:
 
-- ES6: `const oxidize = require("oxidize");`
-- ESNext: `import { Ok, None } from "oxidize";`
+- CommonJS: `const oxidize = require("oxidize");`
+- ES Modules: `import { Ok, None } from "oxidize";`
 
 ## Features
 
