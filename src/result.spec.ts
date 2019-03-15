@@ -228,13 +228,18 @@ test("unwrapOrElse() unwraps a result, yielding the content of an `Ok`, or else 
 });
 
 test("match() provides a convenient interface for checking `Ok` and `Fail` branches", () => {
-  const match = {
-    Ok: x => x * 3,
-    Fail: y => y * 2
-  };
-
-  expect(Fail(7).match(match)).toBe(14);
-  expect(Ok(7).match(match)).toBe(21);
+  expect(
+    Fail(7).match({
+      Ok: x => x * 3,
+      Fail: y => y * 2
+    })
+  ).toBe(14);
+  expect(
+    Ok(7).match({
+      Ok: x => x * 3,
+      Fail: y => y * 2
+    })
+  ).toBe(21);
 });
 
 test("static fromArray() provides an interface for parsing an array of Results", () => {

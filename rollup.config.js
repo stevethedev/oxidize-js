@@ -10,6 +10,10 @@
  | JavaScript libraries (as opposed to applications).
  |
  */
+import copy from "rollup-plugin-copy";
+const cfgCopy = {
+  "package.json": "dist/package.json"
+};
 
 /*
  |------------------------------------------------------------------------------
@@ -139,16 +143,19 @@ function getOutput({ format, suffix, minify }) {
     name: "Oxidize",
     exports: "named",
     sourcemap: true,
-    file: `./dist/oxidize${suffix ? `.${suffix}` : ""}${
-      minify ? ".min" : ""
-    }.js`,
+    file: `./dist/index${suffix ? `.${suffix}` : ""}${minify ? ".min" : ""}.js`,
     format
   };
 }
 
 function getPlugins({ typescript: ts, uglify: ug }) {
   const tsOpts = { ...cfgTypescript, ...(ts || {}) };
-  const plugins = [alias(cfgAlias), typescript(tsOpts), replace(cfgReplace)];
+  const plugins = [
+    alias(cfgAlias),
+    typescript(tsOpts),
+    replace(cfgReplace),
+    copy(cfgCopy)
+  ];
   if (ug) {
     plugins.push(uglify(cfgUglify));
   }
@@ -173,14 +180,4 @@ function getOptions(output = {}) {
   };
 }
 
-export default [
-  getOptions({ format: "umd" }),
-  ...(process.env.BUILD === "production"
-    ? [getOptions({ format: "umd", suffix: "min", uglify: true })]
-    : []),
-
-  getOptions({ format: "esm", suffix: "esm", target: "es6" }),
-  getOptions({ format: "esm", suffix: "es5", target: "es5" }),
-  getOptions({ format: "esm", suffix: "es6", target: "es6" }),
-  getOptions({ format: "esm", suffix: "esnext", target: "esnext" })
-];
+export default getOptions({ format: "umd" });

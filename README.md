@@ -32,10 +32,8 @@ const oxidize = require("oxidize");
 For less common use-cases, though, you may want greater control over how your
 dependencies are written:
 
-- ES3: `require("oxidize/dist/oxidize.es3");`
-- ES5: `require("oxidize/dist/oxidize.es5");`
-- ES6: `require("oxidize/dist/oxidize.es6");`
-- ESNext: `require("oxidize/dist/oxidize.esnext");`
+- ES6: `const oxidize = require("oxidize");`
+- ESNext: `import { Ok, None } from "oxidize";`
 
 ## Features
 

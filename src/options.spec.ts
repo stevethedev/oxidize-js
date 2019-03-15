@@ -11,14 +11,19 @@ test("basic functionality", () => {
   }
 
   // The return value of the function is an `Option`
-  const matches = {
-    Some: x => `Result: ${x}`,
-    None: () => "Cannot divide by 0"
-  };
+  expect(
+    divide(2, 3).match({
+      Some: x => `Result: ${x}`,
+      None: () => "Cannot divide by 0"
+    })
+  ).toBe(`Result: ${2 / 3}`);
 
-  expect(divide(2, 3).match(matches)).toBe(`Result: ${2 / 3}`);
-
-  expect(divide(2, 0).match(matches)).toBe("Cannot divide by 0");
+  expect(
+    divide(2, 0).match({
+      Some: x => `Result: ${x}`,
+      None: () => "Cannot divide by 0"
+    })
+  ).toBe("Cannot divide by 0");
 });
 
 test("isSome() returns `true` if the option is a `Some` value.", () => {
@@ -37,13 +42,21 @@ test("isNone() returns `true` if the option is `None`", () => {
 });
 
 test("match() provides a convenient interface for checking `Ok` and `Fail` branches", () => {
-  const match = {
-    Some: x => x * 3,
-    None: () => 0
-  };
+  let opt = Some(7);
+  expect(
+    opt.match({
+      Some: x => x * 3,
+      None: () => 0
+    })
+  ).toBe(21);
 
-  expect(Some(7).match(match)).toBe(21);
-  expect(None().match(match)).toBe(0);
+  opt = None();
+  expect(
+    opt.match({
+      Some: x => x * 3,
+      None: () => 0
+    })
+  ).toBe(0);
 });
 
 test("can unwrap a value", () => {

@@ -157,15 +157,15 @@ export class Result<T, F = Error> {
         : IObject[key]
     }
   >(results: IObject): Result<T, F> {
-    const r = {};
+    const r: { [key in keyof IObject]?: T } = {};
     for (const [key, value] of Object.entries(results)) {
       if (value instanceof Result) {
         if (value.isFail()) {
           return value;
         }
-        r[key] = value.unwrap();
+        r[key as keyof IObject] = value.unwrap();
       } else {
-        r[key] = value;
+        r[key as keyof IObject] = value;
       }
     }
     return Ok(r as T);

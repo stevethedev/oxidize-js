@@ -1,31 +1,29 @@
 {
   "compilerOptions": {
-    "strict": true,
+    "target": "es2015",
     "declaration": true,
-    "target": "es5",
-    "module": "es2015",
-    "noImplicitAny": false,
-    "removeComments": false,
-    "preserveConstEnums": true,
-    "moduleResolution": "node",
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "downlevelIteration": true,
-    "sourceMap": false,
-    "strictNullChecks": true,
-    "noUnusedParameters": false,
+    "stripInternal": true,
+
+    "strict": true,
     "noUnusedLocals": true,
-    "noEmitOnError": true,
-    "noEmitHelpers": true,
-    "importHelpers": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": "./src",
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "moduleResolution": "node",
+    "baseUrl": "./",
     "paths": {
-      "~/*": ["./src/*"]
+      "oxidize/*": ["./src/*"],
+      "oxidize": ["./src/oxidize.ts"]
     },
-    "esModuleInterop": true
+
+    "rootDir": "./src",
+
+    "sourceRoot": "./",
+    "inlineSourceMap": true,
+    "inlineSources": true,
+
+    "experimentalDecorators": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src"]
 }
