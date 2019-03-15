@@ -320,6 +320,107 @@ export class Option<T> {
     }
     return None();
   }
+
+  /**
+   * Returns `None` if the option is `None`, or else calls `fn()`.
+   *
+   * @param fn The function to retrieve the next value from.
+   *
+   * ```typescript
+   * const sq = (x: number): Option<number> => Some(x * x);
+   * const nope = (_: number): Option<number> => None();
+   *
+   * expect(Some(2).andThen(sq).andThen(sq)).toEqual(Some(16));
+   * expect(Some(2).andThen(sq).andThen(nope)).toEqual(None());
+   * expect(Some(2).andThen(nope).andThen(sq)).toEqual(None());
+   * expect(None().andThen(sq).andThen(sq)).toEqual(None());
+   * ```
+   */
+  public andThen<U>(fn: (val: T) => Option<U>): Option<U> {
+    if (this.isSome()) {
+      return fn(this.value as T);
+    }
+    return None();
+  }
+
+  /**
+   * Applies a filter to the `Option` that could convert it to a `None`.
+   *
+   * @param fn The filtering function to use.
+   *
+   * If this `Option` is a `Some` value, then `fn` is called with the wrapped
+   * value as the parameter. If the function returns `true`, then the current
+   * Option is returned. If the function returns a non-`true` value, then a
+   * `None` value is returned instead.
+   *
+   * ```typescript
+   * const isEven = (n: number) => (n % 2 === 0);
+   *
+   * expect(None(0).filter(isEven)).toEqual(None(0));
+   * expect(Some(3).filter(isEven)).toEqual(None(0));
+   * expect(Some(4).filter(isEven)).toEqual(Some(4));
+   * ```
+   */
+  public filter(fn: (val: T) => boolean): Option<T> {
+    if (this.isSome() && fn(this.value as T)) {
+      return this;
+    }
+    return None();
+  }
+
+  /**
+   * Returns the `Option` if it contains a value, or else returns `rhs`.
+   *
+   * @param rhs The second `Option` to return if this is `None()`.
+   *
+   * ```typescript
+   * let x = Some(2);
+   * let y = None();
+   *
+   * expect(x.or(y)).toEqual(Some(2));
+   *
+   * x = None();
+   * y = Some(100);
+   *
+   * expect(x.or(y)).toEqual(Some(100));
+   *
+   * x = Some(2);
+   * y = Some(100);
+   *
+   * expect(x.or(y)).toEqual(Some(2));
+   *
+   * x = None();
+   * y = None();
+   * expect(x.or(y)).toEqual(None(0));
+   * ```
+   */
+  public or(rhs: Option<T>): Option<T> {
+    if (this.isSome()) {
+      return this;
+    }
+    return rhs;
+  }
+
+  /**
+   * Returns the `Option` if it contains a value, otherwise `fn()`.
+   *
+   * @param fn The function to lazily execute if this is `None`.
+   *
+   * ```typescript
+   * const nobody = () => None("");
+   * const vikings = () => Some("vikings");
+   *
+   * expect(Some("barbarians").orElse(vikings)).toEqual(Some("barbarians"));
+   * expect(None("").orElse(vikings)).toEqual(Some("vikings"));
+   * expect(None("").orElse(nobody)).toEqual(None(""));
+   * ```
+   */
+  public orElse(fn: () => Option<T>): Option<T> {
+    if (this.isSome()) {
+      return this;
+    }
+    return fn();
+  }
 }
 
 interface MatchBlock<T, A, B> {
@@ -327,10 +428,24 @@ interface MatchBlock<T, A, B> {
   None: (() => B) | (() => B);
 }
 
+/**
+ * Represents a present optional value.
+ *
+ * @param value The value to wrap.
+ */
 export function Some<T>(value: T) {
   return new Option(value);
 }
 
-export function None<T>() {
+/**
+ * Represents a missing optional value.
+ *
+ * @param _hint An optional value that can be used for type-hinting.
+ *
+ * This convenience method uses a type-hinting parameter to get better
+ * implicit types for TypeScript. In JavaScript there is no reason to
+ * use the `_hint` parameter; it is no-op.
+ */
+export function None<T>(_hint?: T) {
   return new Option<T>();
 }

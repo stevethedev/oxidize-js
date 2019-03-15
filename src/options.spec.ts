@@ -148,3 +148,67 @@ test("can convert undefined and null values into an Option", () => {
   expect(double(None())).toBe(0);
   expect(double(Some(2))).toBe(4);
 });
+
+test("can lazily join Options with andThen()", () => {
+  const sq = (x: number): Option<number> => Some(x * x);
+  const nope = (_: number): Option<number> => None();
+
+  expect(
+    Some(2)
+      .andThen(sq)
+      .andThen(sq)
+  ).toEqual(Some(16));
+  expect(
+    Some(2)
+      .andThen(sq)
+      .andThen(nope)
+  ).toEqual(None());
+  expect(
+    Some(2)
+      .andThen(nope)
+      .andThen(sq)
+  ).toEqual(None());
+  expect(
+    None(0)
+      .andThen(sq)
+      .andThen(sq)
+  ).toEqual(None());
+});
+
+test("can use `filter()` to filter an Option", () => {
+  const isEven = (n: number) => n % 2 === 0;
+
+  expect(None(0).filter(isEven)).toEqual(None(0));
+  expect(Some(3).filter(isEven)).toEqual(None(0));
+  expect(Some(4).filter(isEven)).toEqual(Some(4));
+});
+
+test("can apply branching logic with `or()`", () => {
+  let x = Some(2);
+  let y = None(0);
+
+  expect(x.or(y)).toEqual(Some(2));
+
+  x = None();
+  y = Some(100);
+
+  expect(x.or(y)).toEqual(Some(100));
+
+  x = Some(2);
+  y = Some(100);
+
+  expect(x.or(y)).toEqual(Some(2));
+
+  x = None();
+  y = None();
+  expect(x.or(y)).toEqual(None(0));
+});
+
+test("can apply branching logic with `orElse()`", () => {
+  const nobody = () => None("");
+  const vikings = () => Some("vikings");
+
+  expect(Some("barbarians").orElse(vikings)).toEqual(Some("barbarians"));
+  expect(None("").orElse(vikings)).toEqual(Some("vikings"));
+  expect(None("").orElse(nobody)).toEqual(None(""));
+});
