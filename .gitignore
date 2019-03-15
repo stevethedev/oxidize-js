@@ -3,3 +3,4 @@ coverage
 dist
 *.d.ts
 oxidize*tgz
+doc

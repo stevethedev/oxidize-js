@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["**/*.spec.ts", "./src/oxidize.ts"],
+  "compilerOptions": {
+    "sourceRoot": null,
+    "sourceMap": false,
+    "module": "esnext",
+    "declaration": false,
+    "outDir": "./dist/es"
+  }
+}
