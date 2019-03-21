@@ -1,3 +1,5 @@
+import { None, Option, Some } from "./options";
+
 /**
  * Provides a Rust-inspired error-handling structure.
  *
@@ -50,471 +52,298 @@
  * let goodResult: Result<number, number> = Ok(10);
  * let badResult: Result<number, number> = Fail(10);
  *
- * expect(goodResult.isOk() && !goodResult.isFail()).toBe(true);
- * expect(badResult.isFail() && !badResult.isOk()).toBe(true);
+ * expect(isOk(goodResult) && !isFail(goodResult)).toBe(true);
+ * expect(isFail(badResult) && !isOk(badResult)).toBe(true);
  * ```
  *
  * The `map` consumes the `Result` and produces another:
  *
  * ```typescript
- * goodResult = goodResult.map(i => i + 1);
- * badResult = badResult.map(i => i - 1);
+ * goodResult = map(goodResult, i => i + 1);
+ * badResult = map(badResult, i => i - 1);
  * ```
  *
  * Use `andThen` to continue the computation:
  *
  * ```typescript
- * let convertedResult: Result<bool, number> = goodResult.andThen(i => Ok(i === 11));
+ * let convertedResult: Result<bool, number> = andThen(goodResult, i => Ok(i === 11));
  * ```
  *
  * Use `orElse` to handle the error:
  *
  * ```typescript
- * let fixedResult: Result<number, number> = badResult.orElse(i => Ok(i + 20));
+ * let fixedResult: Result<number, number> = orElse(badResult, i => Ok(i + 20));
  * ```
  *
  * Extract the value with `unwrap` if the value is valid:
  *
  * ```typescript
- * let finalResult: number = fixedResult.unwrap();
+ * let finalResult: number = unwrap(fixedResult);
  * ```
  */
-export class Result<T, F = Error> {
-  /**
-   * Collects many `Result<T, F>`s into one `Result<T[], F>`.
-   *
-   * @param results The list of results to collect.
-   *
-   * ```typescript
-   * expect(Result.fromArray([Ok(1), Ok(2), Ok(3)])).toEqual(Ok([1, 2, 3]));
-   * expect(Result.fromArray([Ok(1), Ok(2), Fail(3)])).toEqual(Fail(3));
-   * expect(Result.fromArray([Ok(1), Fail(2), Ok(3)])).toEqual(Fail(2));
-   * expect(Result.fromArray([Ok(1), Fail(2), Fail(3)])).toEqual(Fail(2));
-   * expect(Result.fromArray([Fail(1), Ok(2), Ok(3)])).toEqual(Fail(1));
-   * expect(Result.fromArray([Fail(1), Ok(2), Fail(3)])).toEqual(Fail(1));
-   * expect(Result.fromArray([Fail(1), Fail(2), Ok(3)])).toEqual(Fail(1));
-   * expect(Result.fromArray([Fail(1), Fail(2), Fail(3)])).toEqual(Fail(1));
-   * ```
-   */
-  public static fromArray<T, F = Error>(
-    results: Array<Result<T, F>>
-  ): Result<T[], F> {
-    const collection: T[] = [];
-    for (const result of results) {
-      if (result.isFail()) {
-        return (result as unknown) as Result<T[], F>;
-      }
-      collection.push(result.unwrap());
+export type Result<T> = T | Error;
+
+/**
+ * Collects many `Result<T, F>`s into one `Result<T[], F>`.
+ *
+ * @param results The list of results to collect.
+ *
+ * ```typescript
+ * expect(arrayToResult([Ok(1), Ok(2), Ok(3)])).toEqual(Ok([1, 2, 3]));
+ * expect(arrayToResult([Ok(1), Ok(2), Fail(3)])).toEqual(Fail(3));
+ * expect(arrayToResult([Ok(1), Fail(2), Ok(3)])).toEqual(Fail(2));
+ * expect(arrayToResult([Ok(1), Fail(2), Fail(3)])).toEqual(Fail(2));
+ * expect(arrayToResult([Fail(1), Ok(2), Ok(3)])).toEqual(Fail(1));
+ * expect(arrayToResult([Fail(1), Ok(2), Fail(3)])).toEqual(Fail(1));
+ * expect(arrayToResult([Fail(1), Fail(2), Ok(3)])).toEqual(Fail(1));
+ * expect(arrayToResult([Fail(1), Fail(2), Fail(3)])).toEqual(Fail(1));
+ * ```
+ */
+export function arrayToResult<T>(results: Array<Result<T>>): Result<T[]> {
+  const collection: T[] = [];
+  for (const result of results) {
+    if (isFail(result)) {
+      return result;
     }
-    return Ok(collection);
+    collection.push(result);
   }
+  return collection;
+}
 
-  /**
-   * Converts a Dictionary of `Result` objects into a single Result.
-   *
-   * @param results A Dictionary of results to convert into a single Result.
-   *
-   * ```typescript
-   * const results = {
-   *   a: Ok(1),
-   *   b: Ok(2),
-   *   c: Ok(3),
-   * };
-   *
-   * expect(Result.fromObject(results)).toEqual(Ok({ a: 1, b: 2, c: 3 }));
-   *
-   * const withFail = {
-   *   a: Ok(1),
-   *   b: Fail(2),
-   *   c: Fail(3),
-   * };
-   *
-   * expect(Result.fromObject(withFail)).toEqual(Fail(2));
-   *
-   * const withValues = {
-   *   a: Ok(1),
-   *   b: 2,
-   *   c: Ok(3),
-   * };
-   *
-   * expect(Result.fromObject(withValues)).toEqual(Ok({ a: 1, b: 2, c: 3 }));
-   *
-   * const withFailAndValues = {
-   *   a: Ok(1),
-   *   b: 2,
-   *   c: Fail(3),
-   * };
-   *
-   * expect(Result.fromObject(withFailAndValues)).toEqual(Fail(3));
-   * ```
-   */
-  public static fromObject<
-    IObject extends object,
-    F = Error,
-    T = {
-      [key in keyof IObject]: IObject[key] extends Result<infer A, any>
-        ? A
-        : IObject[key]
+/**
+ * Converts a Dictionary of `Result` objects into a single Result.
+ *
+ * @param results A Dictionary of results to convert into a single Result.
+ *
+ * ```typescript
+ * const results = {
+ *   a: Ok(1),
+ *   b: Ok(2),
+ *   c: Ok(3),
+ * };
+ *
+ * expect(objectToResult(results)).toEqual(Ok({ a: 1, b: 2, c: 3 }));
+ *
+ * const withFail = {
+ *   a: Ok(1),
+ *   b: Fail(2),
+ *   c: Fail(3),
+ * };
+ *
+ * expect(objectToResult(withFail)).toEqual(Fail(2));
+ *
+ * const withValues = {
+ *   a: Ok(1),
+ *   b: 2,
+ *   c: Ok(3),
+ * };
+ *
+ * expect(objectToResult(withValues)).toEqual(Ok({ a: 1, b: 2, c: 3 }));
+ *
+ * const withFailAndValues = {
+ *   a: Ok(1),
+ *   b: 2,
+ *   c: Fail(3),
+ * };
+ *
+ * expect(objectToResult(withFailAndValues)).toEqual(Fail(3));
+ * ```
+ */
+export function objectToResult<
+  IObject extends object,
+  T = {
+    [key in keyof IObject]: IObject[key] extends Result<infer A>
+      ? A
+      : IObject[key]
+  }
+>(results: IObject): Result<T> {
+  const r: { [key in keyof IObject]?: T } = {};
+  for (const [key, value] of Object.entries(results)) {
+    if (isFail(value)) {
+      return value;
     }
-  >(results: IObject): Result<T, F> {
-    const r: { [key in keyof IObject]?: T } = {};
-    for (const [key, value] of Object.entries(results)) {
-      if (value instanceof Result) {
-        if (value.isFail()) {
-          return value;
-        }
-        r[key as keyof IObject] = value.unwrap();
-      } else {
-        r[key as keyof IObject] = value;
-      }
-    }
-    return Ok(r as T);
+    r[key as keyof IObject] = value;
   }
-
-  /**
-   * Collects a traditional value/throw into a `Result`.
-   *
-   * This function is especially useful for capturing the values and thrown
-   * errors of functions that do not use the `Result` pattern.
-   *
-   * @param op The function call to wrap.
-   *
-   * ```typescript
-   * expect(Result.wrap(() => 7)).toEqual(Ok(7));
-   * expect(Result.wrap(() => {
-   *   throw new Error("foo");
-   * })).toEqual(Fail(new Error("foo")));
-   * ```
-   */
-  public static wrap<T, F = Error>(op: () => T): Result<T, F> {
-    try {
-      return Ok(op());
-    } catch (error) {
-      return Fail(error);
-    }
-  }
-
-  /**
-   * Collects a Promise `resolve`/`reject` into a `Result`.
-   *
-   * @param op The function call to wrap.
-   *
-   * ```typescript
-   * expect(Result.wrap(async () => 7)).toEqual(Ok(7));
-   * expect(Result.wrap(async () => {
-   *   throw new Error("foo");
-   * })).toEqual(Fail(new Error("foo")));
-   * ```
-   */
-  public static async wrapAsync<T, F = Error>(
-    op: () => Promise<T>
-  ): Promise<Result<T, F>> {
-    try {
-      return Ok(await op());
-    } catch (error) {
-      return Fail(error);
-    }
-  }
-
-  constructor(
-    private readonly _value: Readonly<T | F>,
-    private readonly _isOk: Readonly<boolean>
-  ) {}
-
-  /**
-   * Returns `true` if the result is `Ok`.
-   *
-   * ```typescript
-   * const x: Result<number, string> = Ok(-3);
-   * expect(x.isOk()).toBe(true);
-   *
-   * const y: Result<number, string> = Fail("Some error message");
-   * expect(y.isOk()).toBe(false);
-   * ```
-   */
-  public isOk(): boolean {
-    return this._isOk;
-  }
-
-  /**
-   * Returns `true` if the result is `Fail`.
-   *
-   * ```typescript
-   * const x: Result<number, string> = Ok(-3);
-   * expect(x.isFail()).toBe(false);
-   *
-   * const y: Result<number, string> = Fail("Some error message");
-   * expect(y.isFail()).toBe(true);
-   * ```
-   */
-  public isFail(): boolean {
-    return !this._isOk;
-  }
-
-  /**
-   * Converts from `Result<T, F>` to `T | null`, and discards `F`.
-   *
-   * ```typescript
-   * const x = Ok(2);
-   * expect(x.ok()).toBe(2);
-   *
-   * const y = Fail("Nothing here");
-   * expect(y.ok()).toBe(null);
-   * ```
-   */
-  public ok(): T | null {
-    if (this._isOk) {
-      return this._value as T;
-    }
-
-    return null;
-  }
-
-  /**
-   * Converts from `Result<T, F>` to `F | null`, and discards `T`.
-   *
-   * ```typescript
-   * const x = Ok(2);
-   * expect(x.fail()).toBe(null);
-   *
-   * const y = Err("Nothing here");
-   * expect(y.fail()).toBe("Nothing here");
-   * ```
-   */
-  public fail(): F | null {
-    if (!this._isOk) {
-      return this._value as F;
-    }
-
-    return null;
-  }
-
-  /**
-   * Maps a `Result<T, F>` to `Result<U, F>` by applying a function to a
-   * contained `Ok` value, leaving a `Fail` untouched.
-   *
-   * @param op Transforms a `T` value to a `U` value.
-   *
-   * ```typescript
-   * expect(Ok(2).map(v => `${v}`).ok()).toBe("2");
-   * expect(Fail(2).map(v => `${v}`).ok()).toBe(null);
-   * ```
-   */
-  public map<U>(op: (value: T) => U): Result<U, F> {
-    if (this._isOk) {
-      return Ok(op(this._value as T));
-    }
-    return (this as unknown) as Result<U, F>;
-  }
-
-  /**
-   * Maps a `Result<T, F>` to `Result<T, G>` by applying a function contained
-   * `Fail` value, leaving an `Ok` value untouched.
-   *
-   * @param op Transforms an `F` value to a `G` value.
-   *
-   * ```typescript
-   * expect(Fail(2).mapFail(f => `${f}`).fail()).toBe("2");
-   * expect(Ok(2).mapFail(f => `${f}`).fail()).toBe(null);
-   * ```
-   */
-  public mapFail<E>(op: (failure: F) => E): Result<T, E> {
-    if (!this._isOk) {
-      return Fail(op(this._value as F));
-    }
-    return (this as unknown) as Result<T, E>;
-  }
-
-  /**
-   * Returns `res` if this is `Ok`, otherwise returns this `Fail`.
-   *
-   * @param rhs The second result to return.
-   *
-   * ```typescript
-   * const x = Ok(2);
-   * const y = Fail("late error");
-   *
-   * expect(x.and(y).fail()).toBe("late error");
-   *
-   * x = Fail("early error");
-   * y = Ok("foo");
-   *
-   * expect(x.and(y).fail()).toBe("early error");
-   *
-   * x = Fail("not a 2");
-   * y = Fail("late error");
-   *
-   * expect(x.and(y).fail()).toBe("not a 2");
-   *
-   * x = Ok(2);
-   * y = Ok("different result type");
-   *
-   * expect(x.and(y).ok()).toBe("different result type");
-   * ```
-   */
-  public and<U>(rhs: Result<U, F>): Result<U, F> {
-    if (this._isOk) {
-      return rhs;
-    }
-    return (this as unknown) as Result<U, F>;
-  }
-
-  /**
-   * Returns `rhs` if the result is `Fail`, otherwise returns the `Ok` of this.
-   *
-   * @param rhs Result to return if `this` is `Fail`.
-   *
-   * ```typescript
-   * let x = Ok(2);
-   * let y = Fail("late error");
-   *
-   * expect(x.or(y)).toEqual(Ok(2));
-   *
-   * x = Fail("early error");
-   * y = Ok(2);
-   *
-   * expect(x.or(y)).toEqual(Ok(2));
-   *
-   * x = Fail("not a 2");
-   * y = Fail("late error");
-   *
-   * expect(x.or(y)).toEqual(Fail("late error"));
-   *
-   * x = Ok(2);
-   * y = Ok(100);
-   *
-   * expect(x.or(y)).toEqual(Ok(2));
-   * ```
-   */
-  public or<A>(rhs: A): Result<T, F> | A {
-    if (this._isOk) {
-      return this;
-    }
-    return rhs;
-  }
-
-  /**
-   * Calls `op` if the result is `Ok`. Otherwise, returns `this` as `Fail`.
-   *
-   * @param op The function to return a `Result`.
-   *
-   * ```typescript
-   * const sq = (x: number): Result<number, number> => Ok(x * x);
-   * const err = (x: number): Result<number, number> => Fail(x);
-   *
-   * expect(Ok(2).andThen(sq).andThen(sq)).toEqual(Ok(16));
-   * expect(Ok(2).andThen(sq).andThen(err)).toEqual(Fail(4));
-   * expect(Ok(2).andThen(err).andThen(sq)).toEqual(Fail(2));
-   * expect(Fail(3).andThen(sq).andThen(sq)).toEqual(Fail(3));
-   * ```
-   */
-  public andThen<U>(op: (value: T) => Result<U, F>): Result<U, F> {
-    if (this._isOk) {
-      return op(this._value as T);
-    }
-    return (this as unknown) as Result<U, F>;
-  }
-
-  /**
-   * Calls `op` if `this` is `Fail`, otherwise returns `this`.
-   *
-   * @param op The function to return a `Result`.
-   *
-   * ```typescript
-   * const sq = (x: number): Result<number, number> => Ok(x * x);
-   * const err = (x: number): Result<number, number> => Fail(x);
-   *
-   * expect(Ok(2).orElse(sq).orElse(sq)).toEqual(Ok(2));
-   * expect(Ok(2).orElse(err).orElse(sq)).toEqual(Ok(2));
-   * expect(Fail(3).orElse(sq).orElse(err)).toEqual(Ok(9));
-   * expect(Fail(3).orElse(err).orElse(err)).toEqual(Fail(3));
-   * ```
-   */
-  public orElse<A>(op: (failure: F) => Result<T, F>): Result<T, F> {
-    if (!this._isOk) {
-      return op(this._value as F);
-    }
-    return this;
-  }
-
-  /**
-   * Unwraps a result, yielding the content of an `Ok`.
-   *
-   * ```typescript
-   * expect(Ok(2).unwrap()).toEqual(Ok(2));
-   * expect(() => Fail("emergency failure").unwrap()).toThrow();
-   * ```
-   */
-  public unwrap(): T {
-    if (!this._isOk) {
-      throw this._value;
-    }
-    return this._value as T;
-  }
-
-  /**
-   * Unwraps a result, yielding the content of an `Ok`, or else returns `optb`.
-   *
-   * @param optb The default value to return if `this` is `Fail`.
-   *
-   * ```typescript
-   * expect(Ok(9).unwrapOr(2)).toBe(9);
-   * expect(Fail("error").unwrapOr(2)).toBe(2);
-   * ```
-   */
-  public unwrapOr(optb: T): T {
-    if (this._isOk) {
-      return this._value as T;
-    }
-    return optb;
-  }
-
-  /**
-   * Unwraps a result, yielding the content of an `Ok`, or else executes `op`.
-   *
-   * @param op The function to execute to get a value.
-   *
-   * ```typescript
-   * const count = (x: string) => x.length;
-   *
-   * expect(Ok(2).unwrapOrElse(count)).toBe(2);
-   * expect(Fail("foo").unwrapOrElse(count)).toBe(3);
-   * ```
-   */
-  public unwrapOrElse(op: (f: F) => T): T {
-    if (this._isOk) {
-      return this._value as T;
-    }
-
-    return op(this._value as F);
-  }
-
-  /**
-   * Provides a convenient interface for matching against `Fail` and `Ok`.
-   *
-   * @param matchBlock The MatchBlock to execute the `Result` against.
-   *
-   * ```typescript
-   * const match = {
-   *   Ok: (x) => x * 3,
-   *   Fail: (y) => y * 2,
-   * };
-   *
-   * expect(Fail(7).match(match)).toBe(14);
-   * expect(Ok(7).match(match)).toBe(21);
-   * ```
-   */
-  public match<A, B>(matchBlock: MatchBlock<T, F, A, B>): A | B {
-    if (this._isOk) {
-      return matchBlock.Ok(this._value as T);
-    }
-    return matchBlock.Fail(this._value as F);
+  return Ok(r as T);
+}
+/**
+ * Collects a Promise `resolve`/`reject` into a `Result`.
+ *
+ * @param op The function call to wrap.
+ *
+ * ```typescript
+ * expect(getResultAsync(async () => 7)).toEqual(Ok(7));
+ * expect(getResultAsync(async () => {
+ *   throw new Error("foo");
+ * })).toEqual(Fail(new Error("foo")));
+ * ```
+ */
+export async function getResultAsync<T>(
+  op: () => Promise<T>
+): Promise<Result<T>> {
+  try {
+    return await op();
+  } catch (error) {
+    return error;
   }
 }
 
-interface MatchBlock<T, F, A, B> {
-  Ok: ((val: T) => A) | (() => A);
-  Fail: ((err: F) => B) | (() => B);
+/**
+ * Returns `res` if this is `Ok`, otherwise returns this `Fail`.
+ *
+ * @param rhs The second result to return.
+ *
+ * ```typescript
+ * const x = Ok(2);
+ * const y = Fail("late error");
+ *
+ * expect(fail(and(x, y))).toBe("late error");
+ *
+ * x = Fail("early error");
+ * y = Ok("foo");
+ *
+ * expect(fail(and(x, y))).toBe("early error");
+ *
+ * x = Fail("not a 2");
+ * y = Fail("late error");
+ *
+ * expect(fail(and(x, y))).toBe("not a 2");
+ *
+ * x = Ok(2);
+ * y = Ok("different result type");
+ *
+ * expect(ok(and(x, y))).toBe("different result type");
+ * ```
+ */
+// tslint:disable
+// prettier-ignore
+export function and<T, U>                              (lhs: Result<T>, rhs: Result<U>): Result<U>;
+// prettier-ignore
+export function and<T, A, U>                           (lhs: Result<T>, a: Result<A>, rhs: Result<U>): Result<U>;
+// prettier-ignore
+export function and<T, A, B, U>                        (lhs: Result<T>, a: Result<A>, b: Result<B>, rhs: Result<U>): Result<U>;
+// prettier-ignore
+export function and<T, A, B, C, U>                     (lhs: Result<T>, a: Result<A>, b: Result<B>, c: Result<C>, rhs: Result<U>): Result<U>;
+// prettier-ignore
+export function and<T, A, B, C, D, U>                  (lhs: Result<T>, a: Result<A>, b: Result<B>, c: Result<C>, d: Result<D>, rhs: Result<U>): Result<U>;
+// prettier-ignore
+export function and<T, A, B, C, D, E, U>               (lhs: Result<T>, a: Result<A>, b: Result<B>, c: Result<C>, d: Result<D>, e: Result<E>, rhs: Result<U>): Result<U>;
+// prettier-ignore
+export function and<T, A, B, C, D, E, F, U>            (lhs: Result<T>, a: Result<A>, b: Result<B>, c: Result<C>, d: Result<D>, e: Result<E>, f: Result<F>, rhs: Result<U>): Result<U>;
+// prettier-ignore
+export function and<T, A, B, C, D, E, F, G, U>         (lhs: Result<T>, a: Result<A>, b: Result<B>, c: Result<C>, d: Result<D>, e: Result<E>, f: Result<F>, g: Result<G>, rhs: Result<U>): Result<U>;
+// prettier-ignore
+export function and<T, A, B, C, D, E, F, G, H, U>      (lhs: Result<T>, a: Result<A>, b: Result<B>, c: Result<C>, d: Result<D>, e: Result<E>, f: Result<F>, g: Result<G>, h: Result<H>, rhs: Result<U>): Result<U>;
+// prettier-ignore
+export function and<T, A, B, C, D, E, F, G, H, I, U>   (lhs: Result<T>, a: Result<A>, b: Result<B>, c: Result<C>, d: Result<D>, e: Result<E>, f: Result<F>, g: Result<G>, h: Result<H>, i: Result<I>, rhs: Result<U>): Result<U>;
+// tslint:enable
+export function and<T, U>(lhs: Result<T>, rhs: Result<U>): Result<U> {
+  if (isOk(lhs)) {
+    return rhs;
+  }
+  return lhs;
+}
+
+/**
+ * Returns `rhs` if the result is `Fail`, otherwise returns the `Ok` of this.
+ *
+ * @param rhs Result to return if `this` is `Fail`.
+ *
+ * ```typescript
+ * let x = Ok(2);
+ * let y = Fail("late error");
+ *
+ * expect(or(x, y)).toEqual(Ok(2));
+ *
+ * x = Fail("early error");
+ * y = Ok(2);
+ *
+ * expect(or(x, y)).toEqual(Ok(2));
+ *
+ * x = Fail("not a 2");
+ * y = Fail("late error");
+ *
+ * expect(or(x, y)).toEqual(Fail("late error"));
+ *
+ * x = Ok(2);
+ * y = Ok(100);
+ *
+ * expect(or(x, y)).toEqual(Ok(2));
+ * ```
+ */
+export function or<T>(lhs: Result<T>, ...rhs: Array<Result<T>>): Result<T> {
+  return rhs.reduce((l, r) => (isOk(l) ? l : r), lhs);
+}
+
+/**
+ * Unwraps a result, yielding the content of an `Ok`, or else returns `optb`.
+ *
+ * @param optb The default value to return if `this` is `Fail`.
+ *
+ * ```typescript
+ * expect(unwrapOr(Ok(9), 2)).toBe(9);
+ * expect(unwrapOr(Fail("error"), 2)).toBe(2);
+ * ```
+ */
+export function unwrapOr<T>(lhs: Result<T>, def: T): T {
+  return isOk(lhs) ? lhs : def;
+}
+
+/**
+ * Unwraps a result, yielding the content of an `Ok`, or else executes `op`.
+ *
+ * @param op The function to execute to get a value.
+ *
+ * ```typescript
+ * const count = (x: typeof Error.message) => x.length;
+ *
+ * expect(unwrapOrElse(Ok(2), count)).toBe(2);
+ * expect(unwrapOrElse(Fail("foo"), count)).toBe(3);
+ * ```
+ */
+export function unwrapOrElse<T>(res: Result<T>, op: () => T): T {
+  if (isOk(res)) {
+    return res;
+  }
+  return op();
+}
+
+type MatchBlockOk<T, A> = (val: T) => A;
+type MatchBlockFail<B> = (err: Error) => B;
+interface MatchBlock<T, A, B> {
+  Ok: MatchBlockOk<T, A>;
+  Fail: MatchBlockFail<B>;
+}
+
+const isMatchOk = <T, A>(fn: any): fn is MatchBlockOk<T, A> =>
+  "function" === typeof fn;
+const isMatchFail = <B>(fn: any): fn is MatchBlockFail<B> =>
+  "function" === typeof fn;
+
+/**
+ * Provides a convenient interface for matching against `Fail` and `Ok`.
+ *
+ * @param result The result to match against.
+ * @param matchBlock The MatchBlock to execute the `Result` against.
+ *
+ * ```typescript
+ * const match = {
+ *   Ok: (x) => x * 3,
+ *   Fail: (e) => 2,
+ * };
+ *
+ * expect(match(Fail("no match"), match)).toBe(2);
+ * expect(match(Ok(7), match)).toBe(21);
+ * ```
+ */
+export function match<T, A, B>(result: Result<T>, block: MatchBlock<T, A, B>) {
+  if (isOk(result) && isMatchOk(block.Ok)) {
+    return block.Ok(result);
+  }
+  if (isFail(result) && isMatchFail(block.Fail)) {
+    return block.Fail(result);
+  }
+  return result;
 }
 
 /**
@@ -522,8 +351,8 @@ interface MatchBlock<T, F, A, B> {
  *
  * @param t Success value.
  */
-export function Ok<T, F = any>(t: T): Result<T, F> {
-  return new Result<T, F>(t, true);
+export function Ok<T, F = any>(t: T): Result<T> {
+  return t;
 }
 
 /**
@@ -531,6 +360,206 @@ export function Ok<T, F = any>(t: T): Result<T, F> {
  *
  * @param f Error value.
  */
-export function Fail<F, T = any>(f: F): Result<T, F> {
-  return new Result<T, F>(f, false);
+export function Fail<T>(f: string | Result<string>): Result<T> {
+  if (isFail(f)) {
+    return f;
+  }
+  return new Error(f);
+}
+
+/**
+ * Collects a traditional value/throw into a `Result`.
+ *
+ * This function is especially useful for capturing the values and thrown
+ * errors of functions that do not use the `Result` pattern.
+ *
+ * @param op The function call to wrap.
+ *
+ * ```typescript
+ * expect(getResult(() => 7)).toEqual(Ok(7));
+ * expect(getResult(() => {
+ *   throw new Error("foo");
+ * })).toEqual(Fail(new Error("foo")));
+ * ```
+ */
+export const getResult = <T>(fn: () => T): Result<T> => {
+  try {
+    return fn();
+  } catch (e) {
+    if (isFail(e)) {
+      return e;
+    }
+    return new Error(`${e}`);
+  }
+};
+
+/**
+ * Returns `true` if the result is Ok, or else `false`.
+ * @param result The result to check.
+ */
+export function isOk<T>(result: Result<T>): result is T {
+  return !(result instanceof Error);
+}
+
+/**
+ * Returns `true` if the result is an Error, or else `false`.
+ * @param result The result to check.
+ */
+export function isFail<T>(result: Result<T>): result is Error {
+  return result instanceof Error;
+}
+
+/**
+ * Executes `fn` if the result is Ok.
+ * @param result The result to check.
+ * @param fn The function to execute.
+ */
+export function andThen<T>(
+  result: Result<T>,
+  ...ops: Array<(value: T) => Result<T>>
+): Result<T> {
+  return ops.reduce((lhs, op) => {
+    if (isOk(lhs)) {
+      return op(lhs);
+    }
+    return lhs;
+  }, result);
+}
+
+/**
+ * Converts one Result into another type of Result.
+ * @param result The result to check.
+ * @param fn The function to execute.
+ */
+// tslint:disable
+// prettier-ignore
+export function map<T, U>                              (lhs: Result<T>, rhs: (t: T) => Result<U>): Result<U>;
+// prettier-ignore
+export function map<T, A, U>                           (lhs: Result<T>, a: (t: T) => Result<A>, rhs: (a: A) => Result<U>): Result<U>;
+// prettier-ignore
+export function map<T, A, B, U>                        (lhs: Result<T>, a: (t: T) => Result<A>, b: (a: A) => Result<B>, rhs: (b: B) => Result<U>): Result<U>;
+// prettier-ignore
+export function map<T, A, B, C, U>                     (lhs: Result<T>, a: (t: T) => Result<A>, b: (a: A) => Result<B>, c: (b: B) => Result<C>, rhs: (c: C) => Result<U>): Result<U>;
+// prettier-ignore
+export function map<T, A, B, C, D, U>                  (lhs: Result<T>, a: (t: T) => Result<A>, b: (a: A) => Result<B>, c: (b: B) => Result<C>, d: (c: C) => Result<D>, rhs: (d: D) => Result<U>): Result<U>;
+// prettier-ignore
+export function map<T, A, B, C, D, E, U>               (lhs: Result<T>, a: (t: T) => Result<A>, b: (a: A) => Result<B>, c: (b: B) => Result<C>, d: (c: C) => Result<D>, e: (d: D) => Result<E>, rhs: (e: E) => Result<U>): Result<U>;
+// prettier-ignore
+export function map<T, A, B, C, D, E, F, U>            (lhs: Result<T>, a: (t: T) => Result<A>, b: (a: A) => Result<B>, c: (b: B) => Result<C>, d: (c: C) => Result<D>, e: (d: D) => Result<E>, f: (e: E) => Result<F>, rhs: (f: F) => Result<U>): Result<U>;
+// prettier-ignore
+export function map<T, A, B, C, D, E, F, G, U>         (lhs: Result<T>, a: (t: T) => Result<A>, b: (a: A) => Result<B>, c: (b: B) => Result<C>, d: (c: C) => Result<D>, e: (d: D) => Result<E>, f: (e: E) => Result<F>, g: (f: F) => Result<G>, rhs: (g: G) => Result<U>): Result<U>;
+// prettier-ignore
+export function map<T, A, B, C, D, E, F, G, H, U>      (lhs: Result<T>, a: (t: T) => Result<A>, b: (a: A) => Result<B>, c: (b: B) => Result<C>, d: (c: C) => Result<D>, e: (d: D) => Result<E>, f: (e: E) => Result<F>, g: (f: F) => Result<G>, h: (g: G) => Result<H>, rhs: (h: H) => Result<U>): Result<U>;
+// prettier-ignore
+export function map<T, A, B, C, D, E, F, G, H, I, U>   (lhs: Result<T>, a: (t: T) => Result<A>, b: (a: A) => Result<B>, c: (b: B) => Result<C>, d: (c: C) => Result<D>, e: (d: D) => Result<E>, f: (e: E) => Result<F>, g: (f: F) => Result<G>, h: (g: G) => Result<H>, i: (h: H) => Result<I>, rhs: (i: I) => Result<U>): Result<U>;
+// tslint:enable
+export function map(
+  result: Result<any>,
+  ...ops: Array<(x: any) => Result<any>>
+): Result<any> {
+  return ops.reduce((lhs, op) => {
+    if (isOk(lhs)) {
+      return op(lhs);
+    }
+    return lhs;
+  }, result);
+}
+
+/**
+ * Unwraps a result, yielding the content of an `Ok`.
+ *
+ * ```typescript
+ * expect(unwrap(Ok(2))).toEqual(Ok(2));
+ * expect(() => unwrap(Fail("emergency failure"))).toThrow();
+ * ```
+ */
+export function unwrap<T>(result: Result<T>): T {
+  if (!isOk(result)) {
+    throw result;
+  }
+  throw result;
+}
+
+/**
+ * Calls `op` if `this` is `Fail`, otherwise returns `this`.
+ *
+ * @param op The function to return a `Result`.
+ *
+ * ```typescript
+ * const sq = (x: number): Result<number> => Ok(x * x);
+ * const err = (): Result<number> => Fail("Failed");
+ *
+ * expect(orElse(Ok(2), sq, sq)).toEqual(Ok(2));
+ * expect(orElse(Ok(2), err, sq)).toEqual(Ok(2));
+ * expect(orElse(Fail("Failed"), sq, err)).toEqual(Fail("Failed"));
+ * expect(orElse(Fail("Failed"), err, err)).toEqual(Fail("Failed"));
+ * ```
+ */
+export function orElse<T>(
+  result: Result<T>,
+  ...op: Array<() => Result<T>>
+): Result<T> {
+  let r = result;
+  for (let i = 0; i < op.length && !isOk(r); ++i) {
+    r = op[i]();
+  }
+  return r;
+}
+
+/**
+ * Converts from `Result<T>` to `Option<T>`, and discards any failures.
+ *
+ * ```typescript
+ * const x = Ok(2);
+ * expect(okOption(x)).toBe(2);
+ *
+ * const y = Fail("Nothing here");
+ * expect(okOption(y)).toBe(null);
+ * ```
+ */
+export function okOption<T>(result: Result<T>): Option<T> {
+  if (isOk(result)) {
+    return Some(result);
+  }
+
+  return None();
+}
+
+/**
+ * Converts from `Result<T, F>` to `F | null`, and discards `T`.
+ *
+ * ```typescript
+ * const x = Ok(2);
+ * expect(failOption(x)).toBe(null);
+ *
+ * const y = Err("Nothing here");
+ * expect(failOption(y)).toBe("Nothing here");
+ * ```
+ */
+export function failOption<T>(result: Result<T>): Option<Error> {
+  if (isFail(result)) {
+    return result;
+  }
+  return None();
+}
+
+/**
+ * Maps a `Result<T, F>` to `Result<T, G>` by applying a function contained
+ * `Fail` value, leaving an `Ok` value untouched.
+ *
+ * @param op Transforms an `F` value to a `G` value.
+ *
+ * ```typescript
+ * expect(mapFail(Fail("Hello"), f => `${f}, world`)).toBe(Fail("Hello, world"));
+ * expect(mapFail(Ok(2), f => `${f}`)).toBe(null);
+ * ```
+ */
+export function mapFail<T>(
+  result: Result<T>,
+  op: (fail: string) => string
+): Result<T> {
+  if (!isOk(result)) {
+    return Fail(op(result.message));
+  }
+  return Ok(result);
 }
