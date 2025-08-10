@@ -32,13 +32,25 @@ const EMPTY_VALUE = Symbol("EMPTY_VALUE");
  * ```
  */
 export class Option<T> {
+/**
+   * Creates an `Option` containing a value (`Some`).
+   *
+   * @param value The value to wrap in the `Option`.
+   * @returns An `Option` representing a present value.
+   */
   static Some<T>(value: T) {
     return new Option(INTERNAL, value);
   }
 
+  /**
+   * Creates an `Option` representing no value (`None`).
+   *
+   * @returns An `Option` representing a missing value.
+   */
   static None<T>() {
     return new Option<T>(INTERNAL, EMPTY_VALUE);
   }
+
   /**
    * Returns `Some<T>` if the value is not null or undefined, else `None<T>`.
    *
@@ -438,8 +450,18 @@ export class Option<T> {
   }
 }
 
+/**
+ * A match block for `Option<T>`.
+ */
 interface MatchBlock<T, A, B> {
+    /**
+     * The function to execute if this is a `Some` value.
+     */
   Some: ((val: T) => A) | (() => A);
+
+    /**
+     * The function to execute if this is a `None` value.
+     */
   None: () => B;
 }
 

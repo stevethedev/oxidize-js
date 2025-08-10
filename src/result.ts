@@ -82,17 +82,30 @@ const INTERNAL = Symbol("result");
  * ```
  */
 export class Result<T, F> {
+/**
+   * Creates a `Result` containing a success value.
+   *
+   * @param value The success value.
+   * @returns A `Result` representing success.
+   */
   static Ok<T>(value: T): Result<T, unknown>;
   static Ok<T, F = Error>(value: T): Result<T, F>;
   static Ok<T>(value: T): Result<T, unknown> {
     return new Result(INTERNAL, value, true);
   }
 
+  /**
+   * Creates a `Result` containing a failure value.
+   *
+   * @param error The failure value.
+   * @returns A `Result` representing failure.
+   */
   static Fail<F>(error: F): Result<unknown, F>;
   static Fail<T = unknown, F = Error>(error: F): Result<T, F>;
   static Fail<F>(error: F): Result<unknown, F> {
     return new Result(INTERNAL, error, false);
   }
+
   /**
    * Collects many `Result<T, F>`s into one `Result<T[], F>`.
    *
@@ -526,8 +539,17 @@ export class Result<T, F> {
   }
 }
 
+/**
+ * A MatchBlock is a set of functions that can be used to match against a Result.
+ */
 interface MatchBlock<T, F, A, B> {
+    /**
+     * The function to execute if the result is `Ok`.
+     */
   Ok: ((val: T) => A) | (() => A);
+    /**
+     * The function to execute if the result is `Fail`.
+     */
   Fail: ((err: F) => B) | (() => B);
 }
 
