@@ -136,7 +136,7 @@ export class Option<T> {
    * expect(None().match(match)).toBe(0);
    * ```
    */
-  match<A, B>(matchBlock: MatchBlock<T, A, B>): A | B {
+  match<A, B>(matchBlock: OptionMatchBlock<T, A, B>): A | B {
     if (this.isSome()) {
       return matchBlock.Some(this.#value as T);
     }
@@ -453,7 +453,7 @@ export class Option<T> {
 /**
  * A match block for `Option<T>`.
  */
-interface MatchBlock<T, A, B> {
+export interface OptionMatchBlock<T, A, B> {
     /**
      * The function to execute if this is a `Some` value.
      */

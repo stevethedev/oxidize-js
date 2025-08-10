@@ -532,7 +532,7 @@ export class Result<T, F> {
    * expect(Ok(7).match(match)).toBe(21);
    * ```
    */
-  match<A, B>(matchBlock: MatchBlock<T, F, A, B>): A | B {
+  match<A, B>(matchBlock: ResultMatchBlock<T, F, A, B>): A | B {
     return this.#isOk
       ? matchBlock.Ok(this.#value as T)
       : matchBlock.Fail(this.#value as F);
@@ -542,7 +542,7 @@ export class Result<T, F> {
 /**
  * A MatchBlock is a set of functions that can be used to match against a Result.
  */
-interface MatchBlock<T, F, A, B> {
+export interface ResultMatchBlock<T, F, A, B> {
     /**
      * The function to execute if the result is `Ok`.
      */
