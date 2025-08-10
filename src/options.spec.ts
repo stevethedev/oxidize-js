@@ -13,16 +13,16 @@ test("basic functionality", () => {
   // The return value of the function is an `Option`
   expect(
     divide(2, 3).match({
-      Some: x => `Result: ${x}`,
-      None: () => "Cannot divide by 0"
-    })
+      Some: (x) => `Result: ${x}`,
+      None: () => "Cannot divide by 0",
+    }),
   ).toBe(`Result: ${2 / 3}`);
 
   expect(
     divide(2, 0).match({
-      Some: x => `Result: ${x}`,
-      None: () => "Cannot divide by 0"
-    })
+      Some: (x) => `Result: ${x}`,
+      None: () => "Cannot divide by 0",
+    }),
   ).toBe("Cannot divide by 0");
 });
 
@@ -45,17 +45,17 @@ test("match() provides a convenient interface for checking `Ok` and `Fail` branc
   let opt = Some(7);
   expect(
     opt.match({
-      Some: x => x * 3,
-      None: () => 0
-    })
+      Some: (x) => x * 3,
+      None: () => 0,
+    }),
   ).toBe(21);
 
   opt = None();
   expect(
     opt.match({
-      Some: x => x * 3,
-      None: () => 0
-    })
+      Some: (x) => x * 3,
+      None: () => 0,
+    }),
   ).toBe(0);
 });
 
@@ -78,26 +78,36 @@ test("can unwrap with a lazily executed function", () => {
 
 test("can map Option<T> to Option<U>", () => {
   const maybeString = Some("Hello, world");
-  const maybeLen = maybeString.map(s => s.length);
+  const maybeLen = maybeString.map((s) => s.length);
   expect(maybeLen).toEqual(Some(12));
   const possibleString = None<string>();
-  const possibleLength = possibleString.map(s => s.length);
+  const possibleLength = possibleString.map((s) => s.length);
   expect(possibleLength).toEqual(None());
 });
 
 test("can mapOr Option<T> to U", () => {
-  expect(Some("foo").mapOr(42, x => x.length)).toBe(3);
-  expect(None<string>().mapOr(42, x => x.length)).toBe(42);
+  expect(Some("foo").mapOr(42, (x) => x.length)).toBe(3);
+  expect(None<string>().mapOr(42, (x) => x.length)).toBe(42);
 });
 
 test("can mapOrElse to lazily evaluate two paths", () => {
   const k = 21;
 
   let x = Some("foo");
-  expect(x.mapOrElse(() => 2 * k, v => v.length)).toBe(3);
+  expect(
+    x.mapOrElse(
+      () => 2 * k,
+      (v) => v.length,
+    ),
+  ).toBe(3);
 
   x = None();
-  expect(x.mapOrElse(() => 2 * k, v => v.length)).toBe(42);
+  expect(
+    x.mapOrElse(
+      () => 2 * k,
+      (v) => v.length,
+    ),
+  ).toBe(42);
 });
 
 test("can convert `Option<T>` to `Result<T, F>`", () => {
@@ -151,64 +161,55 @@ test("can convert undefined and null values into an Option", () => {
 
 test("can lazily join Options with andThen()", () => {
   const sq = (x: number): Option<number> => Some(x * x);
-  const nope = (_: number): Option<number> => None();
+  const nope = (): Option<number> => None();
 
-  expect(
-    Some(2)
-      .andThen(sq)
-      .andThen(sq)
-  ).toEqual(Some(16));
-  expect(
-    Some(2)
-      .andThen(sq)
-      .andThen(nope)
-  ).toEqual(None());
-  expect(
-    Some(2)
-      .andThen(nope)
-      .andThen(sq)
-  ).toEqual(None());
-  expect(
-    None(0)
-      .andThen(sq)
-      .andThen(sq)
-  ).toEqual(None());
+  expect(Some(2).andThen(sq).andThen(sq)).toEqual(Some(16));
+  expect(Some(2).andThen(sq).andThen(nope)).toEqual(None());
+  expect(Some(2).andThen(nope).andThen(sq)).toEqual(None());
+  expect(None<number>().andThen(sq).andThen(sq)).toEqual(None());
 });
 
 test("can use `filter()` to filter an Option", () => {
   const isEven = (n: number) => n % 2 === 0;
 
-  expect(None(0).filter(isEven)).toEqual(None(0));
-  expect(Some(3).filter(isEven)).toEqual(None(0));
+  expect(None<number>().filter(isEven)).toEqual(None());
+  expect(Some(3).filter(isEven)).toEqual(None());
   expect(Some(4).filter(isEven)).toEqual(Some(4));
 });
 
-test("can apply branching logic with `or()`", () => {
-  let x = Some(2);
-  let y = None(0);
+test("or() returns the first Some value", () => {
+  const x = Some(2);
+  const y = None<number>();
+  const result = x.or(y);
+  expect(result).toEqual(Some(2));
+});
 
-  expect(x.or(y)).toEqual(Some(2));
+test("or() returns the second Some value if the first is None", () => {
+  const x = None();
+  const y = Some(100);
+  const result = x.or(y);
+  expect(result).toEqual(Some(100));
+});
 
-  x = None();
-  y = Some(100);
+test("or() returns the first Some value when both are Some", () => {
+  const x = Some(2);
+  const y = Some(100);
+  const result = x.or(y);
+  expect(result).toEqual(Some(2));
+});
 
-  expect(x.or(y)).toEqual(Some(100));
-
-  x = Some(2);
-  y = Some(100);
-
-  expect(x.or(y)).toEqual(Some(2));
-
-  x = None();
-  y = None();
-  expect(x.or(y)).toEqual(None(0));
+test("or() returns None when both are None", () => {
+  const x = None();
+  const y = None();
+  const result = x.or(y);
+  expect(result).toEqual(None());
 });
 
 test("can apply branching logic with `orElse()`", () => {
-  const nobody = () => None("");
+  const nobody = () => None();
   const vikings = () => Some("vikings");
 
   expect(Some("barbarians").orElse(vikings)).toEqual(Some("barbarians"));
-  expect(None("").orElse(vikings)).toEqual(Some("vikings"));
-  expect(None("").orElse(nobody)).toEqual(None(""));
+  expect(None().orElse(vikings)).toEqual(Some("vikings"));
+  expect(None().orElse(nobody)).toEqual(None());
 });

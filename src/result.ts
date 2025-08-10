@@ -1,3 +1,5 @@
+const INTERNAL = Symbol("result");
+
 /**
  * Provides a Rust-inspired error-handling structure.
  *
@@ -79,7 +81,18 @@
  * let finalResult: number = fixedResult.unwrap();
  * ```
  */
-export class Result<T, F = Error> {
+export class Result<T, F> {
+  static Ok<T>(value: T): Result<T, unknown>;
+  static Ok<T, F = Error>(value: T): Result<T, F>;
+  static Ok<T>(value: T): Result<T, unknown> {
+    return new Result(INTERNAL, value, true);
+  }
+
+  static Fail<F>(error: F): Result<unknown, F>;
+  static Fail<T = unknown, F = Error>(error: F): Result<T, F>;
+  static Fail<F>(error: F): Result<unknown, F> {
+    return new Result(INTERNAL, error, false);
+  }
   /**
    * Collects many `Result<T, F>`s into one `Result<T[], F>`.
    *
@@ -96,17 +109,15 @@ export class Result<T, F = Error> {
    * expect(Result.fromArray([Fail(1), Fail(2), Fail(3)])).toEqual(Fail(1));
    * ```
    */
-  public static fromArray<T, F = Error>(
-    results: Array<Result<T, F>>
-  ): Result<T[], F> {
+  static fromArray<T, F = Error>(results: Result<T, F>[]): Result<T[], F> {
     const collection: T[] = [];
     for (const result of results) {
       if (result.isFail()) {
-        return (result as unknown) as Result<T[], F>;
+        return result as unknown as Result<T[], F>;
       }
       collection.push(result.unwrap());
     }
-    return Ok(collection);
+    return Result.Ok<T[], F>(collection);
   }
 
   /**
@@ -148,14 +159,14 @@ export class Result<T, F = Error> {
    * expect(Result.fromObject(withFailAndValues)).toEqual(Fail(3));
    * ```
    */
-  public static fromObject<
+  static fromObject<
     IObject extends object,
     F = Error,
     T = {
-      [key in keyof IObject]: IObject[key] extends Result<infer A, any>
+      [key in keyof IObject]: IObject[key] extends Result<infer A, unknown>
         ? A
-        : IObject[key]
-    }
+        : IObject[key];
+    },
   >(results: IObject): Result<T, F> {
     const r: { [key in keyof IObject]?: T } = {};
     for (const [key, value] of Object.entries(results)) {
@@ -168,7 +179,7 @@ export class Result<T, F = Error> {
         r[key as keyof IObject] = value;
       }
     }
-    return Ok(r as T);
+    return Result.Ok<T, F>(r as T);
   }
 
   /**
@@ -186,11 +197,11 @@ export class Result<T, F = Error> {
    * })).toEqual(Fail(new Error("foo")));
    * ```
    */
-  public static wrap<T, F = Error>(op: () => T): Result<T, F> {
+  static wrap<T>(op: () => T): Result<T, unknown> {
     try {
-      return Ok(op());
+      return Result.Ok(op());
     } catch (error) {
-      return Fail(error);
+      return Result.Fail<T, unknown>(error);
     }
   }
 
@@ -206,20 +217,24 @@ export class Result<T, F = Error> {
    * })).toEqual(Fail(new Error("foo")));
    * ```
    */
-  public static async wrapAsync<T, F = Error>(
-    op: () => Promise<T>
-  ): Promise<Result<T, F>> {
+  static async wrapAsync<T>(op: () => Promise<T>): Promise<Result<T, unknown>> {
     try {
-      return Ok(await op());
+      return Result.Ok(await op());
     } catch (error) {
-      return Fail(error);
+      return Result.Fail<T, unknown>(error);
     }
   }
 
-  constructor(
-    private readonly _value: Readonly<T | F>,
-    private readonly _isOk: Readonly<boolean>
-  ) {}
+  readonly #value: Readonly<T | F>;
+  readonly #isOk: boolean;
+  private constructor(internal: symbol, value: Readonly<T | F>, isOk: boolean) {
+    if (internal !== INTERNAL)
+      throw new Error(
+        "Result is not intended to be constructed directly. Use Result.Ok or Result.Fail instead.",
+      );
+    this.#value = value;
+    this.#isOk = isOk;
+  }
 
   /**
    * Returns `true` if the result is `Ok`.
@@ -232,8 +247,8 @@ export class Result<T, F = Error> {
    * expect(y.isOk()).toBe(false);
    * ```
    */
-  public isOk(): boolean {
-    return this._isOk;
+  isOk(): boolean {
+    return this.#isOk;
   }
 
   /**
@@ -247,8 +262,8 @@ export class Result<T, F = Error> {
    * expect(y.isFail()).toBe(true);
    * ```
    */
-  public isFail(): boolean {
-    return !this._isOk;
+  isFail(): boolean {
+    return !this.#isOk;
   }
 
   /**
@@ -262,9 +277,9 @@ export class Result<T, F = Error> {
    * expect(y.ok()).toBe(null);
    * ```
    */
-  public ok(): T | null {
-    if (this._isOk) {
-      return this._value as T;
+  ok(): T | null {
+    if (this.#isOk) {
+      return this.#value as T;
     }
 
     return null;
@@ -281,9 +296,9 @@ export class Result<T, F = Error> {
    * expect(y.fail()).toBe("Nothing here");
    * ```
    */
-  public fail(): F | null {
-    if (!this._isOk) {
-      return this._value as F;
+  fail(): F | null {
+    if (!this.#isOk) {
+      return this.#value as F;
     }
 
     return null;
@@ -300,11 +315,11 @@ export class Result<T, F = Error> {
    * expect(Fail(2).map(v => `${v}`).ok()).toBe(null);
    * ```
    */
-  public map<U>(op: (value: T) => U): Result<U, F> {
-    if (this._isOk) {
-      return Ok(op(this._value as T));
+  map<U>(op: (value: T) => U): Result<U, F> {
+    if (this.#isOk) {
+      return Result.Ok<U, F>(op(this.#value as T));
     }
-    return (this as unknown) as Result<U, F>;
+    return this as unknown as Result<U, F>;
   }
 
   /**
@@ -318,11 +333,11 @@ export class Result<T, F = Error> {
    * expect(Ok(2).mapFail(f => `${f}`).fail()).toBe(null);
    * ```
    */
-  public mapFail<E>(op: (failure: F) => E): Result<T, E> {
-    if (!this._isOk) {
-      return Fail(op(this._value as F));
+  mapFail<E>(op: (failure: F) => E): Result<T, E> {
+    if (!this.#isOk) {
+      return Result.Fail<T, E>(op(this.#value as F));
     }
-    return (this as unknown) as Result<T, E>;
+    return this as unknown as Result<T, E>;
   }
 
   /**
@@ -352,11 +367,11 @@ export class Result<T, F = Error> {
    * expect(x.and(y).ok()).toBe("different result type");
    * ```
    */
-  public and<U>(rhs: Result<U, F>): Result<U, F> {
-    if (this._isOk) {
+  and<U>(rhs: Result<U, F>): Result<U, F> {
+    if (this.#isOk) {
       return rhs;
     }
-    return (this as unknown) as Result<U, F>;
+    return this as unknown as Result<U, F>;
   }
 
   /**
@@ -386,8 +401,8 @@ export class Result<T, F = Error> {
    * expect(x.or(y)).toEqual(Ok(2));
    * ```
    */
-  public or<A>(rhs: A): Result<T, F> | A {
-    if (this._isOk) {
+  or<A>(rhs: A): Result<T, F> | A {
+    if (this.#isOk) {
       return this;
     }
     return rhs;
@@ -408,11 +423,11 @@ export class Result<T, F = Error> {
    * expect(Fail(3).andThen(sq).andThen(sq)).toEqual(Fail(3));
    * ```
    */
-  public andThen<U>(op: (value: T) => Result<U, F>): Result<U, F> {
-    if (this._isOk) {
-      return op(this._value as T);
+  andThen<U>(op: (value: T) => Result<U, F>): Result<U, F> {
+    if (this.#isOk) {
+      return op(this.#value as T);
     }
-    return (this as unknown) as Result<U, F>;
+    return this as unknown as Result<U, F>;
   }
 
   /**
@@ -430,9 +445,9 @@ export class Result<T, F = Error> {
    * expect(Fail(3).orElse(err).orElse(err)).toEqual(Fail(3));
    * ```
    */
-  public orElse<A>(op: (failure: F) => Result<T, F>): Result<T, F> {
-    if (!this._isOk) {
-      return op(this._value as F);
+  orElse(op: (failure: F) => Result<T, F>): Result<T, F> {
+    if (!this.#isOk) {
+      return op(this.#value as F);
     }
     return this;
   }
@@ -445,11 +460,11 @@ export class Result<T, F = Error> {
    * expect(() => Fail("emergency failure").unwrap()).toThrow();
    * ```
    */
-  public unwrap(): T {
-    if (!this._isOk) {
-      throw this._value;
+  unwrap(): T {
+    if (!this.#isOk) {
+      throw this.#value;
     }
-    return this._value as T;
+    return this.#value as T;
   }
 
   /**
@@ -462,9 +477,9 @@ export class Result<T, F = Error> {
    * expect(Fail("error").unwrapOr(2)).toBe(2);
    * ```
    */
-  public unwrapOr(optb: T): T {
-    if (this._isOk) {
-      return this._value as T;
+  unwrapOr(optb: T): T {
+    if (this.#isOk) {
+      return this.#value as T;
     }
     return optb;
   }
@@ -481,12 +496,12 @@ export class Result<T, F = Error> {
    * expect(Fail("foo").unwrapOrElse(count)).toBe(3);
    * ```
    */
-  public unwrapOrElse(op: (f: F) => T): T {
-    if (this._isOk) {
-      return this._value as T;
+  unwrapOrElse(op: (f: F) => T): T {
+    if (this.#isOk) {
+      return this.#value as T;
     }
 
-    return op(this._value as F);
+    return op(this.#value as F);
   }
 
   /**
@@ -504,11 +519,10 @@ export class Result<T, F = Error> {
    * expect(Ok(7).match(match)).toBe(21);
    * ```
    */
-  public match<A, B>(matchBlock: MatchBlock<T, F, A, B>): A | B {
-    if (this._isOk) {
-      return matchBlock.Ok(this._value as T);
-    }
-    return matchBlock.Fail(this._value as F);
+  match<A, B>(matchBlock: MatchBlock<T, F, A, B>): A | B {
+    return this.#isOk
+      ? matchBlock.Ok(this.#value as T)
+      : matchBlock.Fail(this.#value as F);
   }
 }
 
@@ -522,15 +536,11 @@ interface MatchBlock<T, F, A, B> {
  *
  * @param t Success value.
  */
-export function Ok<T, F = any>(t: T): Result<T, F> {
-  return new Result<T, F>(t, true);
-}
+export const Ok = Result.Ok;
 
 /**
  * Contains an Error Value.
  *
  * @param f Error value.
  */
-export function Fail<F, T = any>(f: F): Result<T, F> {
-  return new Result<T, F>(f, false);
-}
+export const Fail = Result.Fail;

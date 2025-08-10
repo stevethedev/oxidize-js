@@ -87,7 +87,7 @@ version.match({
   },
   Fail(f) {
     console.error(`Error parsing header: ${f}`);
-  }
+  },
 });
 ```
 
@@ -135,22 +135,22 @@ expect(badResult.isFail() && !badResult.isOk()).toBe(true);
 The `map` consumes the `Result` and produces another:
 
 ```typescript
-goodResult = goodResult.map(i => i + 1);
-badResult = badResult.map(i => i - 1);
+goodResult = goodResult.map((i) => i + 1);
+badResult = badResult.map((i) => i - 1);
 ```
 
 Use `andThen` to continue the computation:
 
 ```typescript
-let convertedResult: Result<bool, number> = goodResult.andThen(i =>
-  Ok(i === 11)
+let convertedResult: Result<bool, number> = goodResult.andThen((i) =>
+  Ok(i === 11),
 );
 ```
 
 Use `orElse` to handle the error:
 
 ```typescript
-let fixedResult: Result<number, number> = badResult.orElse(i => Ok(i + 20));
+let fixedResult: Result<number, number> = badResult.orElse((i) => Ok(i + 20));
 ```
 
 Extract the value with `unwrap` if the value is valid:
@@ -222,8 +222,8 @@ functions, as well:
 
 ```typescript
 let value = divide(2, 0).match({
-  Some: x => x,
-  None: () => 0
+  Some: (x) => x,
+  None: () => 0,
 });
 
 value = divide(2, 0).unwrapOr(0);

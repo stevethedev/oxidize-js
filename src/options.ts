@@ -1,5 +1,7 @@
 import { Fail, Ok, Result } from "./result";
 
+const INTERNAL = Symbol("options");
+const EMPTY_VALUE = Symbol("EMPTY_VALUE");
 /**
  * Optional values.
  *
@@ -30,6 +32,13 @@ import { Fail, Ok, Result } from "./result";
  * ```
  */
 export class Option<T> {
+  static Some<T>(value: T) {
+    return new Option(INTERNAL, value);
+  }
+
+  static None<T>() {
+    return new Option<T>(INTERNAL, EMPTY_VALUE);
+  }
   /**
    * Returns `Some<T>` if the value is not null or undefined, else `None<T>`.
    *
@@ -52,17 +61,23 @@ export class Option<T> {
    * expect(double(Some(2))).toBe(4);
    * ```
    */
-  public static from<T>(value: T | undefined | null | Option<T>): Option<T> {
+  static from<T>(value: T | undefined | null | Option<T>): Option<T> {
     if (value instanceof Option) {
       return value;
     }
     if (value !== void 0 && value !== null) {
-      return Some<T>(value);
+      return Option.Some<T>(value);
     }
-    return None<T>();
+    return Option.None<T>();
   }
 
-  constructor(private value?: T) {}
+  readonly #value: T | typeof EMPTY_VALUE;
+  private constructor(internal: symbol, value: T | typeof EMPTY_VALUE) {
+    if (internal !== INTERNAL) {
+      throw new Error("Option cannot be constructed directly");
+    }
+    this.#value = value;
+  }
 
   /**
    * Returns `true` if the option is a `Some` value.
@@ -75,8 +90,8 @@ export class Option<T> {
    * expect(y.isSome()).toBe(false);
    * ```
    */
-  public isSome(): boolean {
-    return this.value !== void 0;
+  isSome(): boolean {
+    return this.#value !== EMPTY_VALUE;
   }
 
   /**
@@ -90,8 +105,8 @@ export class Option<T> {
    * expect(y.isNone()).toBe(true);
    * ```
    */
-  public isNone(): boolean {
-    return this.value === void 0;
+  isNone(): boolean {
+    return this.#value === EMPTY_VALUE;
   }
 
   /**
@@ -109,9 +124,9 @@ export class Option<T> {
    * expect(None().match(match)).toBe(0);
    * ```
    */
-  public match<A, B>(matchBlock: MatchBlock<T, A, B>): A | B {
+  match<A, B>(matchBlock: MatchBlock<T, A, B>): A | B {
     if (this.isSome()) {
-      return matchBlock.Some(this.value as T);
+      return matchBlock.Some(this.#value as T);
     }
     return matchBlock.None();
   }
@@ -133,9 +148,9 @@ export class Option<T> {
    * expect(() => y.unwrap()).toThrow();
    * ```
    */
-  public unwrap(msg: string = "Attempted to unwrap a `None` Option"): T {
+  unwrap(msg: string = "Attempted to unwrap a `None` Option"): T {
     if (this.isSome()) {
-      return this.value as T;
+      return this.#value as T;
     }
     throw new Error(msg);
   }
@@ -150,9 +165,9 @@ export class Option<T> {
    * expect(None().unwrapOr("bike")).toBe("bike");
    * ```
    */
-  public unwrapOr(def: T): T {
+  unwrapOr(def: T): T {
     if (this.isSome()) {
-      return this.value as T;
+      return this.#value as T;
     }
     return def;
   }
@@ -170,9 +185,9 @@ export class Option<T> {
    * expect(None().unwrapOrElse(() => "bike")).toBe("bike");
    * ```
    */
-  public unwrapOrElse(fn: () => T): T {
+  unwrapOrElse(fn: () => T): T {
     if (this.isSome()) {
-      return this.value as T;
+      return this.#value as T;
     }
     return fn();
   }
@@ -195,11 +210,11 @@ export class Option<T> {
    * expect(possibleLength).toEqual(None());
    * ```
    */
-  public map<U>(fn: (val: T) => U): Option<U> {
+  map<U>(fn: (val: T) => U): Option<U> {
     if (this.isNone()) {
-      return None();
+      return Option.None();
     }
-    return Some(fn(this.value as T));
+    return Option.Some(fn(this.#value as T));
   }
 
   /**
@@ -213,9 +228,9 @@ export class Option<T> {
    * expect(None().mapOr(42, x => x.length)).toBe(42);
    * ```
    */
-  public mapOr<U>(def: U, fn: (val: T) => U): U {
+  mapOr<U>(def: U, fn: (val: T) => U): U {
     if (this.isSome()) {
-      return fn(this.value as T);
+      return fn(this.#value as T);
     }
     return def;
   }
@@ -236,9 +251,9 @@ export class Option<T> {
    * expect(x.mapOrElse(() => 2 * k, v => v.length)).toBe(42);
    * ```
    */
-  public mapOrElse<U>(def: () => U, fn: (val: T) => U): U {
+  mapOrElse<U>(def: () => U, fn: (val: T) => U): U {
     if (this.isSome()) {
-      return fn(this.value as T);
+      return fn(this.#value as T);
     }
     return def();
   }
@@ -258,11 +273,11 @@ export class Option<T> {
    * expect(x.okOr(0)).toEqual(Fail(0));
    * ```
    */
-  public okOr<F>(fail: F): Result<T, F> {
+  okOr<F>(fail: F): Result<T, F> {
     if (this.isSome()) {
-      return Ok(this.value as T);
+      return Ok<T, F>(this.#value as T);
     }
-    return Fail(fail);
+    return Fail<T, F>(fail);
   }
 
   /**
@@ -280,11 +295,11 @@ export class Option<T> {
    * expect(x.okOrElse(() => 0)).toEqual(Fail(0));
    * ```
    */
-  public okOrElse<F>(fn: () => F): Result<T, F> {
+  okOrElse<F>(fn: () => F): Result<T, F> {
     if (this.isSome()) {
-      return Ok(this.value as T);
+      return Ok<T, F>(this.#value as T);
     }
-    return Fail(fn());
+    return Fail<T, F>(fn());
   }
 
   /**
@@ -314,11 +329,11 @@ export class Option<T> {
    * expect(x.and(y)).toEqual(None());
    * ```
    */
-  public and<U>(rhs: Option<U>): Option<U> {
+  and<U>(rhs: Option<U>): Option<U> {
     if (this.isSome()) {
       return rhs;
     }
-    return None();
+    return Option.None();
   }
 
   /**
@@ -336,11 +351,11 @@ export class Option<T> {
    * expect(None().andThen(sq).andThen(sq)).toEqual(None());
    * ```
    */
-  public andThen<U>(fn: (val: T) => Option<U>): Option<U> {
+  andThen<U>(fn: (val: T) => Option<U>): Option<U> {
     if (this.isSome()) {
-      return fn(this.value as T);
+      return fn(this.#value as T);
     }
-    return None();
+    return Option.None();
   }
 
   /**
@@ -361,11 +376,11 @@ export class Option<T> {
    * expect(Some(4).filter(isEven)).toEqual(Some(4));
    * ```
    */
-  public filter(fn: (val: T) => boolean): Option<T> {
-    if (this.isSome() && fn(this.value as T)) {
+  filter(fn: (val: T) => boolean): Option<T> {
+    if (this.isSome() && fn(this.#value as T)) {
       return this;
     }
-    return None();
+    return Option.None();
   }
 
   /**
@@ -394,7 +409,7 @@ export class Option<T> {
    * expect(x.or(y)).toEqual(None(0));
    * ```
    */
-  public or(rhs: Option<T>): Option<T> {
+  or(rhs: Option<T>): Option<T> {
     if (this.isSome()) {
       return this;
     }
@@ -415,7 +430,7 @@ export class Option<T> {
    * expect(None("").orElse(nobody)).toEqual(None(""));
    * ```
    */
-  public orElse(fn: () => Option<T>): Option<T> {
+  orElse(fn: () => Option<T>): Option<T> {
     if (this.isSome()) {
       return this;
     }
@@ -425,7 +440,7 @@ export class Option<T> {
 
 interface MatchBlock<T, A, B> {
   Some: ((val: T) => A) | (() => A);
-  None: (() => B) | (() => B);
+  None: () => B;
 }
 
 /**
@@ -434,18 +449,16 @@ interface MatchBlock<T, A, B> {
  * @param value The value to wrap.
  */
 export function Some<T>(value: T) {
-  return new Option(value);
+  return Option.Some(value);
 }
 
 /**
  * Represents a missing optional value.
  *
- * @param _hint An optional value that can be used for type-hinting.
- *
  * This convenience method uses a type-hinting parameter to get better
  * implicit types for TypeScript. In JavaScript there is no reason to
  * use the `_hint` parameter; it is no-op.
  */
-export function None<T>(_hint?: T) {
-  return new Option<T>();
+export function None<T>(): Option<T> {
+  return Option.None();
 }
