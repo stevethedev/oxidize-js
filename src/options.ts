@@ -86,7 +86,7 @@ export class Option<T> {
   readonly #value: T | typeof EMPTY_VALUE;
   private constructor(internal: symbol, value: T | typeof EMPTY_VALUE) {
     if (internal !== INTERNAL) {
-      throw new Error("Option cannot be constructed directly");
+      throw new Error("Option cannot be constructed directly. Use Option.Some() or Option.None() instead.");
     }
     this.#value = value;
   }
