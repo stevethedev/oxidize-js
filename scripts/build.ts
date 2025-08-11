@@ -63,11 +63,13 @@ async function esbuild(format: "esm" | "cjs"): Promise<string> {
             stdio: "inherit",
             shell: true,
         });
-        tsc.on("close", (code) => {
+        tsc.on("exit", (code, signal) => {
             if (code === 0) {
                 resolve();
-            } else {
+            } else if (code !== null) {
                 reject(new Error(`tsc process exited with code ${code}`));
+            } else {
+                reject(new Error(`tsc process exited with signal ${signal}`));
             }
         });
         tsc.on("error", (err) => {
