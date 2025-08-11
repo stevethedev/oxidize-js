@@ -6,11 +6,7 @@
   "module": "dist/es/index.js",
   "scripts": {
     "doc": "./node_modules/.bin/typedoc --tsconfig ./tsconfig.doc.json --out ./doc --mode modules --exclude '**/*+(spec|oxidize).ts' ./src",
-    "build:es": "tsc -p tsconfig.es.json",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:typedefs": "tsc --declaration --outDir . --emitDeclarationOnly",
-    "build": "npm run build:cjs && npm run build:es && npm run build:typedefs",
-    "clean": "rimraf ./*.d.ts dist",
+    "build": "tsx ./scripts/build.ts",
     "prepublishOnly": "npm run test && npm run build",
     "postpublish": "npm run clean",
     "test": "jest --coverage"
