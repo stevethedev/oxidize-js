@@ -46,7 +46,7 @@ async function esbuild(format: "esm" | "cjs"): Promise<string> {
     const outdir = distPath(format);
     const ext = format === "esm" ? "mjs" : "cjs";
     const tsconfig = filePath("tsconfig.json");
-    const entryPoints = await glob(srcPath("**/*.ts"))
+    const entryPoints = await glob("**/*.ts", { cwd: srcPath() })
         .then((files) => files.filter((file) => !/\.(test|spec)\.ts/.test(file)));
 
     await rm(outdir, { recursive: true, force: true });
