@@ -1,12 +1,12 @@
-import * as ts from "typescript";
+import ts from "typescript";
 import * as fs from "fs";
-import glob from "glob";
+import {glob} from "glob";
 
-function getAllSrcTsFiles(): string[] {
+async function getAllSrcTsFiles(): Promise<string[]> {
     // Only include .ts files in src, excluding test files
-    return glob.sync("src/**/*.ts", {
-        ignore: ["src/**/*.spec.ts", "src/**/*.test.ts", "src/**/setupTests.ts"],
-        absolute: true
+    return await glob("src/**/*.ts", {
+        ignore: ["**/*.spec.ts", "**/*.test.ts"],
+        absolute: true,
     });
 }
 
@@ -22,9 +22,8 @@ function getImports(filePath: string): string[] {
     return imports;
 }
 
-test("No src file imports from node_modules", () => {
-    const files = getAllSrcTsFiles();
-    for (const file of files) {
+test("No src file imports from node_modules", async () => {
+    for (const file of await getAllSrcTsFiles()) {
         const imports = getImports(file);
         for (const imp of imports) {
             if (!imp.startsWith("./") && !imp.startsWith("../")) {

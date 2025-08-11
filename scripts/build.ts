@@ -2,7 +2,8 @@ import { build } from 'esbuild';
 import {rm, readFile, writeFile, copyFile, stat} from 'node:fs/promises'
 import { join, sep } from "node:path";
 import { URL, fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import {glob} from "glob";
 
 // Run the build script.
 main().catch((err: unknown) => {
@@ -45,19 +46,35 @@ async function esbuild(format: "esm" | "cjs"): Promise<string> {
     const outdir = distPath(format);
     const ext = format === "esm" ? "mjs" : "cjs";
     const tsconfig = filePath("tsconfig.json");
+    const entryPoints = await glob("**/*.ts", { cwd: srcPath() })
+        .then((files) => files.filter((file) => !/\.(test|spec)\.ts/.test(file)));
 
     await rm(outdir, { recursive: true, force: true });
     await build({
-        entryPoints: [srcPath("**/*.ts")],
+        entryPoints,
         outdir,
         format,
         outExtension: { ".js": `.${ext}` },
         tsconfig,
     });
 
-    spawnSync("tsc", ["--emitDeclarationOnly", "--declaration", "--outDir", outdir, "--project", tsconfig], {
-        stdio: "inherit",
-        shell: true,
+    await new Promise<void>((resolve, reject) => {
+        const tsc = spawn("tsc", ["--emitDeclarationOnly", "--declaration", "--outDir", outdir, "--project", tsconfig], {
+            stdio: "inherit",
+            shell: true,
+        });
+        tsc.on("exit", (code, signal) => {
+            if (code === 0) {
+                resolve();
+            } else if (code !== null) {
+                reject(new Error(`tsc process exited with code ${code}`));
+            } else {
+                reject(new Error(`tsc process exited with signal ${signal}`));
+            }
+        });
+        tsc.on("error", (err) => {
+            reject(err);
+        });
     });
     const outPath = outdir.substring(distPath("").length + 1).split(sep).join("/");
     return `${outPath}/index.${ext}`;
