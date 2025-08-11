@@ -190,7 +190,7 @@ export class Result<T, F = Error> {
     try {
       return Ok(op());
     } catch (error) {
-      return Fail(error);
+      return Fail(error as F);
     }
   }
 
@@ -212,7 +212,7 @@ export class Result<T, F = Error> {
     try {
       return Ok(await op());
     } catch (error) {
-      return Fail(error);
+      return Fail(error as F);
     }
   }
 
