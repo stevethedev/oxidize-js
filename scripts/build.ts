@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import {rm, readFile, writeFile, copyFile} from 'node:fs/promises'
+import {rm, readFile, writeFile, copyFile, stat} from 'node:fs/promises'
 import { join, sep } from "node:path";
 import { URL, fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -17,9 +17,23 @@ main().catch((err: unknown) => {
 async function main(): Promise<void> {
     const [cjs, esm] = await Promise.all([ esbuild("cjs"), esbuild("esm")])
     await buildPackageJson({ cjs, esm });
-    await copyFile(filePath("README.md"), distPath("README.md"));
-    await copyFile(filePath("LICENSE"), distPath("LICENSE"));
-    await copyFile(filePath("CHANGELOG.md"), distPath("CHANGELOG.md"));
+    await copy("README.md");
+    await copy("LICENSE");
+    await copy("CHANGELOG.md");
+}
+
+/**
+ * Copy a file from the src directory to the dist directory.
+ * @param fs The file system to copy from.
+ * @returns A promise that resolves when the copy is complete.
+ */
+async function copy(fs: string): Promise<void> {
+    const src = filePath(fs);
+    const dest = distPath(fs);
+    // check if file exists
+    if (await stat(src).then(s => s.isFile()).catch(() => false)) {
+        await copyFile(src, dest);
+    }
 }
 
 /**
