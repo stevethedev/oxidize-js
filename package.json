@@ -2,16 +2,11 @@
   "name": "oxidize",
   "version": "1.0.6",
   "description": "A Rust-inspired utility library for TypeScript and JavaScript",
-  "main": "dist/cjs/oxidize.js",
-  "module": "dist/es/oxidize.js",
-  "types": "oxidize.d.ts",
+  "main": "dist/cjs/index.js",
+  "module": "dist/es/index.js",
   "scripts": {
     "doc": "./node_modules/.bin/typedoc --tsconfig ./tsconfig.doc.json --out ./doc --mode modules --exclude '**/*+(spec|oxidize).ts' ./src",
-    "build:es": "tsc -p tsconfig.es.json",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:typedefs": "tsc --declaration --outDir . --emitDeclarationOnly",
-    "build": "npm run build:cjs && npm run build:es && npm run build:typedefs",
-    "clean": "rimraf ./*.d.ts dist",
+    "build": "tsx ./scripts/build.ts",
     "prepublishOnly": "npm run test && npm run build",
     "postpublish": "npm run clean",
     "test": "jest --coverage"
@@ -42,16 +37,18 @@
   "homepage": "https://github.com/stevethedev/oxidize-js#readme",
   "devDependencies": {
     "@types/jest": "^24.0.11",
+    "@types/node": "^22.17.1",
+    "esbuild": "^0.25.8",
     "jest": "^24.5.0",
     "prettier": "1.16.4",
     "ts-jest": "^24.0.0",
     "tslib": "^1.9.3",
     "tslint": "^5.14.0",
     "tslint-config-prettier": "^1.18.0",
+    "tsx": "^4.20.3",
     "typedoc": "^0.14.2",
-    "typescript": "^3.3.3333"
+    "typescript": "^5.9.2"
   },
-  "dependencies": {},
   "jest": {
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.ts$",
     "preset": "ts-jest/presets/js-with-ts",

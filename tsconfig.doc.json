@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["**/*.spec.ts", "./src/oxidize.ts"],
+  "exclude": ["**/*.spec.ts", "./src/index.ts"],
   "compilerOptions": {
     "sourceRoot": null,
     "sourceMap": false,
