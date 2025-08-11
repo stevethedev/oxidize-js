@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "target": "ES2024",
     "lib": ["ES2020"],
     "declaration": true,
     "stripInternal": true,
@@ -32,10 +32,14 @@
   "exclude": ["node_modules/**", "dist/**", "doc/**"],
   "typedocOptions": {
     "out": "./doc",
-    "toc": false,
     "excludePrivate": true,
-    "includes": "./src",
-    "target": "ES6",
+    "entryPoints": ["./src/oxidize.ts"],
+    "exclude": [
+      "**/node_modules/**",
+      "dist/**",
+      "**/*.spec.ts",
+      "src/oxidize.ts"
+    ],
     "theme": "default",
     "name": "Oxidize"
   }

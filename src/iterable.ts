@@ -1,18 +1,22 @@
 export class Iterable {
-  constructor(
-    private start: number = 0,
-    private end: number = Infinity,
-    private step: number = 1
-  ) {}
+  readonly #start: number;
+  readonly #end: number;
+  #step: number;
+
+  constructor(start: number = 0, end: number = Infinity, step: number = 1) {
+    this.#start = start;
+    this.#end = end;
+    this.#step = step;
+  }
 
   public *iter() {
-    for (let i = this.start; i < this.end; i += this.step) {
+    for (let i = this.#start; i < this.#end; i += this.#step) {
       yield i;
     }
   }
 
   public stepBy(step: number): Iterable {
-    this.step = step;
+    this.#step = step;
     return this;
   }
 

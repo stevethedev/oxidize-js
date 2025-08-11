@@ -1,14 +1,14 @@
-import { build } from 'esbuild';
-import {rm, readFile, writeFile, copyFile, stat} from 'node:fs/promises'
+import { build } from "esbuild";
+import { rm, readFile, writeFile, copyFile, stat } from "node:fs/promises";
 import { join, sep } from "node:path";
 import { URL, fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
-import {glob} from "glob";
+import { glob } from "glob";
 
 // Run the build script.
 main().catch((err: unknown) => {
-    console.error(err);
-    process.exit(1);
+  console.error(err);
+  process.exit(1);
 });
 
 /**
@@ -16,11 +16,11 @@ main().catch((err: unknown) => {
  * @returns A promise that resolves when the build is complete.
  */
 async function main(): Promise<void> {
-    const [cjs, esm] = await Promise.all([ esbuild("cjs"), esbuild("esm")])
-    await buildPackageJson({ cjs, esm });
-    await copy("README.md");
-    await copy("LICENSE");
-    await copy("CHANGELOG.md");
+  const [cjs, esm] = await Promise.all([esbuild("cjs"), esbuild("esm")]);
+  await buildPackageJson({ cjs, esm });
+  await copy("README.md");
+  await copy("LICENSE");
+  await copy("CHANGELOG.md");
 }
 
 /**
@@ -29,12 +29,16 @@ async function main(): Promise<void> {
  * @returns A promise that resolves when the copy is complete.
  */
 async function copy(fs: string): Promise<void> {
-    const src = filePath(fs);
-    const dest = distPath(fs);
-    // check if file exists
-    if (await stat(src).then(s => s.isFile()).catch(() => false)) {
-        await copyFile(src, dest);
-    }
+  const src = filePath(fs);
+  const dest = distPath(fs);
+  // check if file exists
+  if (
+    await stat(src)
+      .then((s) => s.isFile())
+      .catch(() => false)
+  ) {
+    await copyFile(src, dest);
+  }
 }
 
 /**
@@ -43,41 +47,56 @@ async function copy(fs: string): Promise<void> {
  * @returns A promise that resolves when the build is complete.
  */
 async function esbuild(format: "esm" | "cjs"): Promise<string> {
-    const outdir = distPath(format);
-    const ext = format === "esm" ? "mjs" : "cjs";
-    const tsconfig = filePath("tsconfig.json");
-    const entryPoints = await glob("**/*.ts", { cwd: srcPath() })
-        .then((files) => files.filter((file) => !/\.(test|spec)\.ts/.test(file)));
+  const outdir = distPath(format);
+  const ext = format === "esm" ? "mjs" : "cjs";
+  const tsconfig = filePath("tsconfig.json");
+  const entryPoints = await glob("**/*.ts", { cwd: srcPath() }).then((files) =>
+    files.filter((file) => !/\.(test|spec)\.ts/.test(file)),
+  );
 
-    await rm(outdir, { recursive: true, force: true });
-    await build({
-        entryPoints,
+  await rm(outdir, { recursive: true, force: true });
+  await build({
+    entryPoints,
+    outdir,
+    format,
+    outExtension: { ".js": `.${ext}` },
+    tsconfig,
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const tsc = spawn(
+      "tsc",
+      [
+        "--emitDeclarationOnly",
+        "--declaration",
+        "--outDir",
         outdir,
-        format,
-        outExtension: { ".js": `.${ext}` },
+        "--project",
         tsconfig,
+      ],
+      {
+        stdio: "inherit",
+        shell: true,
+      },
+    );
+    tsc.on("exit", (code, signal) => {
+      if (code === 0) {
+        resolve();
+      } else if (code !== null) {
+        reject(new Error(`tsc process exited with code ${code}`));
+      } else {
+        reject(new Error(`tsc process exited with signal ${signal}`));
+      }
     });
-
-    await new Promise<void>((resolve, reject) => {
-        const tsc = spawn("tsc", ["--emitDeclarationOnly", "--declaration", "--outDir", outdir, "--project", tsconfig], {
-            stdio: "inherit",
-            shell: true,
-        });
-        tsc.on("exit", (code, signal) => {
-            if (code === 0) {
-                resolve();
-            } else if (code !== null) {
-                reject(new Error(`tsc process exited with code ${code}`));
-            } else {
-                reject(new Error(`tsc process exited with signal ${signal}`));
-            }
-        });
-        tsc.on("error", (err) => {
-            reject(err);
-        });
+    tsc.on("error", (err) => {
+      reject(err);
     });
-    const outPath = outdir.substring(distPath("").length + 1).split(sep).join("/");
-    return `${outPath}/index.${ext}`;
+  });
+  const outPath = outdir
+    .substring(distPath("").length + 1)
+    .split(sep)
+    .join("/");
+  return `${outPath}/index.${ext}`;
 }
 
 /**
@@ -85,25 +104,31 @@ async function esbuild(format: "esm" | "cjs"): Promise<string> {
  * @param cjs The path to the CommonJS build.
  * @param esm The path to the ESM build.
  */
-async function buildPackageJson({ cjs, esm }: Record<"cjs" | "esm", string>): Promise<void> {
-    const packageJsonString = await readFile(filePath("package.json"), "utf-8");
-    const packageJson = JSON.parse(packageJsonString);
-    const main = cjs;
-    const module = esm;
+async function buildPackageJson({
+  cjs,
+  esm,
+}: Record<"cjs" | "esm", string>): Promise<void> {
+  const packageJsonString = await readFile(filePath("package.json"), "utf-8");
+  const packageJson = JSON.parse(packageJsonString);
+  const main = cjs;
+  const module = esm;
 
-    const entries = Object.entries(packageJson)
-        .filter(([key]: [string, unknown]) => {
-            return !(["devDependencies", "jest", "scripts"]).includes(key);
-        });
+  const entries = Object.entries(packageJson).filter(
+    ([key]: [string, unknown]) => {
+      return !["devDependencies", "jest", "scripts"].includes(key);
+    },
+  );
 
+  const newPackageJson = {
+    ...Object.fromEntries(entries),
+    main,
+    module,
+  };
 
-    const newPackageJson = {
-        ...Object.fromEntries(entries),
-        main,
-        module,
-    };
-
-    await writeFile(distPath("package.json"), JSON.stringify(newPackageJson, null, 2));
+  await writeFile(
+    distPath("package.json"),
+    JSON.stringify(newPackageJson, null, 2),
+  );
 }
 
 /**
@@ -112,7 +137,7 @@ async function buildPackageJson({ cjs, esm }: Record<"cjs" | "esm", string>): Pr
  * @returns The absolute path to the file.
  */
 function srcPath(...fp: string[]): string {
-    return filePath("src", ...fp);
+  return filePath("src", ...fp);
 }
 
 /**
@@ -121,7 +146,7 @@ function srcPath(...fp: string[]): string {
  * @returns The absolute path to the file.
  */
 function distPath(...fp: string[]): string {
-    return filePath("dist", ...fp);
+  return filePath("dist", ...fp);
 }
 
 /**
@@ -130,6 +155,6 @@ function distPath(...fp: string[]): string {
  * @returns The absolute path to the file.
  */
 function filePath(...fp: string[]): string {
-    const __dirname = fileURLToPath(new URL("..", import.meta.url));
-    return join(__dirname, ...fp);
+  const __dirname = fileURLToPath(new URL("..", import.meta.url));
+  return join(__dirname, ...fp);
 }
