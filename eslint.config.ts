@@ -4,7 +4,7 @@ import prettier from "eslint-config-prettier";
 
 export default ts.config(
   js.configs.recommended,
-  { ignores: ["node_modules/**", "dist/**", "converage/**"] },
+  { ignores: ["node_modules/**", "dist/**", "coverage/**", "doc/**"] },
   ...ts.configs.recommended,
   prettier,
 );

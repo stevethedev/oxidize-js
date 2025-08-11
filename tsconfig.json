@@ -34,7 +34,12 @@
     "out": "./doc",
     "excludePrivate": true,
     "entryPoints": ["./src/oxidize.ts"],
-    "exclude": ["**/node_modules/**", "dist/**", "**/*.spec.ts", "src/oxidize.ts"],
+    "exclude": [
+      "**/node_modules/**",
+      "dist/**",
+      "**/*.spec.ts",
+      "src/oxidize.ts"
+    ],
     "theme": "default",
     "name": "Oxidize"
   }

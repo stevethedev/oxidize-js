@@ -82,7 +82,7 @@ const INTERNAL = Symbol("result");
  * ```
  */
 export class Result<T, F> {
-/**
+  /**
    * Creates a `Result` containing a success value.
    *
    * @param value The success value.
@@ -543,13 +543,13 @@ export class Result<T, F> {
  * A MatchBlock is a set of functions that can be used to match against a Result.
  */
 export interface ResultMatchBlock<T, F, A, B> {
-    /**
-     * The function to execute if the result is `Ok`.
-     */
+  /**
+   * The function to execute if the result is `Ok`.
+   */
   Ok: ((val: T) => A) | (() => A);
-    /**
-     * The function to execute if the result is `Fail`.
-     */
+  /**
+   * The function to execute if the result is `Fail`.
+   */
   Fail: ((err: F) => B) | (() => B);
 }
 

@@ -32,7 +32,7 @@ const EMPTY_VALUE = Symbol("EMPTY_VALUE");
  * ```
  */
 export class Option<T> {
-/**
+  /**
    * Creates an `Option` containing a value (`Some`).
    *
    * @param value The value to wrap in the `Option`.
@@ -86,7 +86,9 @@ export class Option<T> {
   readonly #value: T | typeof EMPTY_VALUE;
   private constructor(internal: symbol, value: T | typeof EMPTY_VALUE) {
     if (internal !== INTERNAL) {
-      throw new Error("Option cannot be constructed directly. Use Option.Some() or Option.None() instead.");
+      throw new Error(
+        "Option cannot be constructed directly. Use Option.Some() or Option.None() instead.",
+      );
     }
     this.#value = value;
   }
@@ -454,14 +456,14 @@ export class Option<T> {
  * A match block for `Option<T>`.
  */
 export interface OptionMatchBlock<T, A, B> {
-    /**
-     * The function to execute if this is a `Some` value.
-     */
+  /**
+   * The function to execute if this is a `Some` value.
+   */
   Some: ((val: T) => A) | (() => A);
 
-    /**
-     * The function to execute if this is a `None` value.
-     */
+  /**
+   * The function to execute if this is a `None` value.
+   */
   None: () => B;
 }
 
